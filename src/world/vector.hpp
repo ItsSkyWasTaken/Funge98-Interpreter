@@ -1,5 +1,6 @@
 #ifndef FUNGE98_VECTOR_HPP
 #define FUNGE98_VECTOR_HPP
+
 #include <cstdint>
 
 /// A @code Vector@endcode represents a set of coordinates. These coordinates may represent a location or a direction
@@ -11,32 +12,32 @@ class Vector {
         /// Locations default at the origin (i.e., all coordinates are 0).
         ///
         /// @return  a default location vector of the given dimension
-        static Vector defaultLocation(int8_t dim);
+        static Vector origin(int8_t dim);
 
         /// Generates a default delta vector of the specified dimension.
         ///
         /// Delta vectors default to pointing east; that is, their x-coordinate is 1 while the extra coordinates are 0.
         ///
         /// @return  a default delta vector of the given dimension
-        static Vector defaultDelta(int8_t dim);
+        static Vector east(int8_t dim);
 
         /// Constructs a one-dimensional vector with the specified coordinate.
         ///
         /// @param x  the x-coordinate of the vector
-        Vector(int32_t x);
+        Vector(int x);
 
         /// Constructs a two-dimensional vector with the specified coordinates.
         ///
         /// @param x  the x-coordinate of the vector
         /// @param y  the y-coordinate of the vector
-        Vector(int32_t x, int32_t y);
+        Vector(int x, int y);
 
         /// Constructs a three-dimensional vector with the specified coordinates.
         ///
         /// @param x  the x-coordinate of the vector
         /// @param y  the y-coordinate of the vector
         /// @param z  the z-coordinate of the vector
-        Vector(int32_t x, int32_t y, int32_t z);
+        Vector(int x, int y, int z);
 
         /// Adds another vector to this vector and returns the result.
         ///
@@ -102,6 +103,20 @@ class Vector {
         /// The number of dimensions on this vector.
         const int8_t dimensions;
 
+        /// Gets the X-coordinate of this vector.
+        ///
+        /// @return  the vector's X-coordinate
+        [[nodiscard]] inline int32_t getX() const;
+
+        /// Gets the Y-coordinate of this vector.
+        ///
+        /// @return  the vector's Y-coordinate
+        [[nodiscard]] inline int32_t getY() const;
+
+        /// Gets the Z-coordinate of this vector.
+        ///
+        /// @return  the vector's Z-coordinate
+        [[nodiscard]] inline int32_t getZ() const;
 
     private:
         /// The x-coordinate of the vector.
