@@ -95,8 +95,10 @@ class FungeWorld {
         /// @return  whether this program can execute system commands
         [[nodiscard]] bool canExecute() const;
 
+        /// Starts the program.
         void start();
 
+        /// Executes the instruction under the next pointer in the queue and advances the pointer.
         void tick();
 
         /// Checks if an instruction pointer is within the bounds of the world, or if out of bounds, it checks for a

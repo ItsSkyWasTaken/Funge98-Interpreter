@@ -6,6 +6,16 @@
 
 FungeWorld* world;
 
+void quit(const int code) {
+    delete world;
+
+    std::cout << std::endl << std::endl << "================================================================" << std::endl;
+    std::cout << "  Program has finished running." << std::endl << "  Exit code: " << code << std::endl;
+    std::cout << "================================================================" << std::endl;
+
+    std::exit(code);
+}
+
 int main(const int argc, char** argv) {
     const std::string filename = argv[1];
     bool write = false, read = false, execute = false;
@@ -25,6 +35,9 @@ int main(const int argc, char** argv) {
         }
     }
 
+    std::cout << std::endl << "================================================================" << std::endl;
+    std::cout << "  Loading Funge world..." << std::endl;
+
     std::ifstream file(filename);
 
     if(dim > 0 && dim < 4) {
@@ -40,7 +53,8 @@ int main(const int argc, char** argv) {
     w.setExecuteEnabled(execute);
     InstructionSet::load(w);
 
-    w.start();
+    std::cout << "  Starting!" << std::endl;
+    std::cout << "================================================================" << std::endl << std::endl;
 
-    delete world;
+    w.start();
 }

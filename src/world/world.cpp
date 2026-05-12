@@ -158,7 +158,7 @@ void InstructionSet::load(FungeWorld& w) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
             ip.setDelta(-delta.getX(), 0, 0);
         } else {
-            ip.setDelta(-delta.getY(), delta.getX(), delta.getZ());
+            ip.setDelta(delta.getY(), -delta.getX(), delta.getZ());
         }
     };
 
@@ -173,7 +173,7 @@ void InstructionSet::load(FungeWorld& w) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
             ip.setDelta(-delta.getX(), 0, 0);
         } else {
-            ip.setDelta(delta.getY(), -delta.getX(), delta.getZ());
+            ip.setDelta(-delta.getY(), delta.getX(), delta.getZ());
         }
     };
 
@@ -261,6 +261,10 @@ void InstructionSet::load(FungeWorld& w) {
         const Vector& v = stack.popVector(world->dimensions);
         const int32_t n = stack.pop();
         world->put(ip.getOffset() + v, n);
+    };
+
+    commands[U'q'] = [](const InstructionPointer& ip) {
+        quit(ip.getStack().pop());
     };
 
     commands[U'r'] = [](InstructionPointer& ip) {
@@ -617,6 +621,6 @@ void FungeWorld::tick() {
         // hit a '@' or escape the boundaries.
         tick();
     } else {
-        exit(0);
+        quit(0);
     }
 }
