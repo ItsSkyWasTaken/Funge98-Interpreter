@@ -1,23 +1,46 @@
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
+#include <fstream>
 #include <iostream>
+#include <regex>
 
-using namespace std;
-namespace opts = boost::program_options;
+#include "world/world.hpp"
 
-int main(int argc, char** argv) {
-    opts::options_description desc("Options");
-    opts::positional_options_description popts;
+FungeWorld* world;
 
-    desc.add_options()
-            ("program", opts::value<string>(), "program file")
-            ("dim", opts::value<int>(), "specify the dimension of the program")
-            ("allow-reads,r", "allow file reading via (i)")
-            ("allow-writes,w", "allow file writing via (o)")
-            ("allow-system,as", "allow system calls via (=)");
+int main(const int argc, char** argv) {
+    const std::string filename = argv[1];
+    bool write = false, read = false, execute = false;
+    int dim = 0;
 
-    opts::variables_map map;
-    opts::store(opts::parse_command_line(argc, argv, desc), map);
-    opts::notify(map);
+    for(int i = 2; i < argc; i++) {
+        if(std::string arg(argv[i]); arg == "--write" || arg == "-w") {
+            write = true;
+        } else if(arg == "--read" || arg == "-r") {
+            read = true;
+        } else if(arg == "--execute" || arg == "-e") {
+            execute = true;
+        } else if(arg.starts_with("--dim=")) {
+            std::smatch match;
+            std::regex_search(arg, match, std::regex("--dim=(\\d)"));
+            dim = stoi(match[1].str());
+        }
+    }
+
+    std::ifstream file(filename);
+
+    if(dim > 0 && dim < 4) {
+        world = FungeWorld::fromFile(file, static_cast<int8_t>(dim));
+    } else {
+        world = FungeWorld::fromFile(file);
+    }
+
+    FungeWorld& w = *world;
+
+    w.setReadEnabled(read);
+    w.setWriteEnabled(write);
+    w.setExecuteEnabled(execute);
+    InstructionSet::load(w);
+
+    w.start();
+
+    delete world;
 }

@@ -11,6 +11,8 @@ class Vector {
         ///
         /// Locations default at the origin (i.e., all coordinates are 0).
         ///
+        /// @param dim  the number of dimensions for the location vector
+        ///
         /// @return  a default location vector of the given dimension
         static Vector origin(int8_t dim);
 
@@ -18,8 +20,17 @@ class Vector {
         ///
         /// Delta vectors default to pointing east; that is, their x-coordinate is 1 while the extra coordinates are 0.
         ///
+        /// @param dim  the number of dimensions for the delta vector
+        ///
         /// @return  a default delta vector of the given dimension
         static Vector east(int8_t dim);
+
+        /// Generates a delta vector that points one unit in a random cardinal direction.
+        ///
+        /// @param dim  the number of dimensions the delta vector should have
+        ///
+        /// @return  the randomly generated delta vector
+        static Vector random(int8_t dim);
 
         /// Constructs a one-dimensional vector with the specified coordinate.
         ///
@@ -78,12 +89,12 @@ class Vector {
         /// @param vector  the vector to multiply
         ///
         /// @return the product as a new @code Vector@endcode object
-        inline friend Vector operator*(int scalar, const Vector& vector);
+        friend Vector operator*(int scalar, const Vector& vector);
 
         /// Returns a copy of this vector, but reflected.
         ///
         /// @return  a new @code Vector@endcode object representation of this vector reflected
-        inline Vector operator-() const;
+        Vector operator-() const;
 
         /// Adds another vector directly to this vector.
         ///
@@ -100,23 +111,30 @@ class Vector {
         /// @param scalar  the scalar to multiply to this vector
         void operator*=(int scalar);
 
+        /// Sets the vector's coordinates to those of the new vector.
+        ///
+        /// @param v  the new vector
+        ///
+        /// @return  a reference to this vector
+        Vector& operator=(const Vector& v);
+
         /// The number of dimensions on this vector.
         const int8_t dimensions;
 
         /// Gets the X-coordinate of this vector.
         ///
         /// @return  the vector's X-coordinate
-        [[nodiscard]] inline int32_t getX() const;
+        [[nodiscard]] int32_t getX() const;
 
         /// Gets the Y-coordinate of this vector.
         ///
         /// @return  the vector's Y-coordinate
-        [[nodiscard]] inline int32_t getY() const;
+        [[nodiscard]] int32_t getY() const;
 
         /// Gets the Z-coordinate of this vector.
         ///
         /// @return  the vector's Z-coordinate
-        [[nodiscard]] inline int32_t getZ() const;
+        [[nodiscard]] int32_t getZ() const;
 
     private:
         /// The x-coordinate of the vector.
