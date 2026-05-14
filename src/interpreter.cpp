@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <regex>
+#include <string>
 
 #include "world/world.hpp"
 
@@ -9,7 +10,7 @@ FungeWorld* world;
 void quit(const int code) {
     delete world;
 
-    std::cout << std::endl << std::endl << "================================================================" << std::endl;
+    std::cout << std::endl << std::endl << "\033[0m================================================================" << std::endl;
     std::cout << "  Program has finished running." << std::endl << "  Exit code: " << code << std::endl;
     std::cout << "================================================================" << std::endl;
 
@@ -17,7 +18,6 @@ void quit(const int code) {
 }
 
 int main(const int argc, char** argv) {
-    const std::string filename = argv[1];
     bool write = false, read = false, execute = false;
     int dim = 0;
 
@@ -29,21 +29,22 @@ int main(const int argc, char** argv) {
         } else if(arg == "--execute" || arg == "-e") {
             execute = true;
         } else if(arg.starts_with("--dim=")) {
-            std::smatch match;
-            std::regex_search(arg, match, std::regex("--dim=(\\d)"));
-            dim = stoi(match[1].str());
+            dim = arg[6] - '0';
         }
     }
 
-    std::cout << std::endl << "================================================================" << std::endl;
+    std::cout << std::endl << "\033[0m================================================================" << std::endl;
     std::cout << "  Loading Funge world..." << std::endl;
 
-    std::ifstream file(filename);
-
-    if(dim > 0 && dim < 4) {
-        world = FungeWorld::fromFile(file, static_cast<int8_t>(dim));
+    if(std::ifstream file(argv[1]); file.is_open()) {
+        if(dim > 0 && dim < 4) {
+            world = FungeWorld::fromFile(file, static_cast<int8_t>(dim));
+        } else {
+            world = FungeWorld::fromFile(file);
+        }
     } else {
-        world = FungeWorld::fromFile(file);
+        std::cerr << "Could not read file: " << argv[1] << std::endl;
+        std::exit(2);
     }
 
     FungeWorld& w = *world;

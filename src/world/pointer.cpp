@@ -62,6 +62,56 @@ Stack& InstructionPointer::getStack() const {
     return *stack;
 }
 
+void InstructionPointer::startBlock() {
+    const int32_t n = stack->pop();
+    stack->split(n);
+
+    switch(storageOffset.dimensions) {
+        case 1:
+            stack->soss()->push(storageOffset.getX());
+            break;
+        case 2:
+            stack->soss()->push(storageOffset.getX());
+            stack->soss()->push(storageOffset.getY());
+            break;
+        default:
+            stack->soss()->push(storageOffset.getX());
+            stack->soss()->push(storageOffset.getY());
+            stack->soss()->push(storageOffset.getZ());
+    }
+
+    storageOffset = location + delta;
+}
+
+void InstructionPointer::endBlock() {
+    const int32_t n = stack->pop();
+    int32_t x = 0, y = 0, z = 0;
+
+    switch(storageOffset.dimensions) {
+        case 1:
+            x = stack->soss()->top();
+            stack->soss()->pop();
+            break;
+        case 2:
+            x = stack->soss()->top();
+            stack->soss()->pop();
+            y = stack->soss()->top();
+            stack->soss()->pop();
+            break;
+        default:
+            x = stack->soss()->top();
+            stack->soss()->pop();
+            y = stack->soss()->top();
+            stack->soss()->pop();
+            z = stack->soss()->top();
+            stack->soss()->pop();
+    }
+
+    storageOffset = {x, y, z};
+
+    stack->collapse(n);
+}
+
 InstructionPointer::~InstructionPointer() {
     delete stack;
 }

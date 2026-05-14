@@ -139,6 +139,111 @@ std::u32string Stack::popString() {
     return result;
 }
 
+uint32_t Stack::size() const {
+    return ss.size();
+}
+
+void Stack::split(const int32_t elements) {
+    ss.emplace_back();
+
+    std::stack<int32_t> temp;
+    if(elements <= 0) {
+        for(int i = 0; i > elements; i--) {
+            soss()->push(0);
+        }
+    } else if(elements > soss()->size()) {
+        for(int i = 0; i < elements - soss()->size(); i++) {
+            toss()->push(0);
+        }
+
+        while(!soss()->empty()) {
+            temp.push(soss()->top());
+            soss()->pop();
+        }
+
+        while(!temp.empty()) {
+            toss()->push(temp.top());
+            temp.pop();
+        }
+    } else {
+        for(int i = 0; i < elements; i++) {
+            temp.push(soss()->top());
+            soss()->pop();
+        }
+
+        while(!temp.empty()) {
+            toss()->push(temp.top());
+            temp.pop();
+        }
+    }
+}
+
+void Stack::collapse(const int32_t elements) {
+    if(soss() == nullptr) {
+        return;
+    }
+
+    std::stack<int32_t> temp;
+    if(elements <= 0) {
+        for(int i = 0; i > elements; i--) {
+            soss()->pop();
+        }
+    } else if(elements > toss()->size()) {
+        for(int i = 0; i < elements - toss()->size(); i++) {
+            soss()->push(0);
+        }
+
+        while(!toss()->empty()) {
+            temp.push(toss()->top());
+            toss()->pop();
+        }
+
+        while(!temp.empty()) {
+            soss()->push(temp.top());
+            temp.pop();
+        }
+    } else {
+        for(int i = 0; i < elements; i++) {
+            temp.push(toss()->top());
+            toss()->pop();
+        }
+
+        while(!temp.empty()) {
+            soss()->push(temp.top());
+            temp.pop();
+        }
+    }
+
+    ss.pop_back();
+}
+
+void Stack::transfer(const int32_t elements) {
+    if(soss() == nullptr) {
+        return;
+    }
+
+    std::stack<int32_t> temp;
+    if(elements >= 0) {
+        for(int i = 0; i < elements; i++) {
+            if(soss()->empty()) {
+                toss()->push(0);
+            } else {
+                toss()->push(soss()->top());
+                soss()->pop();
+            }
+        }
+    } else {
+        for(int i = 0; i > elements; i--) {
+            if(toss()->empty()) {
+                soss()->push(0);
+            } else {
+                soss()->push(toss()->top());
+                toss()->pop();
+            }
+        }
+    }
+}
+
 std::stack<int32_t>* Stack::toss() {
     return &ss[ss.size() - 1];
 }

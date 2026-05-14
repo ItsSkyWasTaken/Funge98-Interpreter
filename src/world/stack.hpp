@@ -59,6 +59,11 @@ class Stack {
         /// Clears the TOSS.
         void clear();
 
+        /// Gets the number of stacks on the stack of stacks.
+        ///
+        /// @return  the number of stacks on the stack stack
+        [[nodiscard]] uint32_t size() const;
+
         /// Removes and returns the top number of the TOSS.
         ///
         /// @return  the popped number, or 0 if the TOSS was empty
@@ -99,7 +104,33 @@ class Stack {
         ///          stack was empty
         std::u32string popString();
 
+        /// Creates a new stack on top of the TOSS (making the former TOSS now the SOSS, while the new stack is the
+        /// TOSS), transferring \e e elements from the TOSS to the SOSS, preserving order.
+        ///
+        /// If \e e is negative, zeros are pushed onto the current SOSS instead.
+        ///
+        /// If \e is greater than the size of the SOSS, the remaining space is filled with zeros.
+        ///
+        /// @param elements  the number of elements to transfer from the SOSS to the TOSS after the split
+        void split(int32_t elements);
+
+        /// Transfers \e e elements from the TOSS to the SOSS, then destroys the TOSS, making the former SOSS the new
+        /// TOSS.
+        ///
+        /// If \e is negative, cells are popped off of the (current) SOSS instead.
+        ///
+        /// @param elements  the number of elements to transfer from the TOSS to the SOSS before the collapse
+        void collapse(int32_t elements);
+
+        /// Transfers \e e elements from the SOSS to the TOSS. If \e e is negative, elements are transferred from the
+        /// TOSS to the SOSS instead.
+        ///
+        /// @param elements  the number of elements to transfer
+        void transfer(int32_t elements);
+
     private:
+        friend class InstructionPointer;
+
         /// The stack of stacks.
         std::vector<std::stack<int32_t>> ss;
 

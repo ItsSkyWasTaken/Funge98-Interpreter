@@ -16,12 +16,22 @@
 // Forward declaration
 class FungeWorld;
 
+/// A static utility class for hosting the available commands in Funge98.
 class InstructionSet {
     public:
+        /// Loads the command map and links the world.
+        ///
+        /// @param w  the world to link
         static void load(FungeWorld& w);
 
-        static void execute(InstructionPointer& ip);
+        /// Executes the command at the pointer's location.
+        ///
+        /// @param ip  a reference to the pointer that should execute the command
+        static bool execute(InstructionPointer& ip);
 
+        /// Check if a character has a mapped command.
+        ///
+        /// @param command  the character to check
         static bool supports(char32_t command);
 
         // Utility class; prevent instantiation of object
@@ -29,11 +39,17 @@ class InstructionSet {
         InstructionSet(const InstructionSet&) = delete;
 
     private:
-        static std::unordered_map<char32_t, std::function<void(InstructionPointer&)>> commands;
+        /// A map of all the commands available. Commands take a reference of the instruction pointer that executed them
+        /// as their sole parameter, and they return a boolean indicating their success status. An unsuccessful
+        /// execution triggers a pointer reflect.
+        static std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> commands;
 
+        /// A pointer to the world.
         static FungeWorld* world;
 };
 
+/// The Funge World is where all the instructions and data are stored. It can be 1D, 2D, or 3D depending on how the
+/// supplied file is set up or the passed arguments.
 class FungeWorld {
     public:
         /// Loads a Funge world from a supplied file, automatically inferring the dimensions.
@@ -114,6 +130,8 @@ class FungeWorld {
         const int8_t dimensions;
 
     private:
+        friend class InstructionSet;
+
         // TODO: add more memory-efficient means of storing far away data;
         // ideally we do not need to create 2 billion 2D vectors of 4-byte characters to store some faraway data.
 
@@ -122,7 +140,6 @@ class FungeWorld {
 
         /// The queue of instruction pointers. Instruction pointers are polled, executed, and re-offered in a circle.
         std::queue<InstructionPointer*> pointers;
-        friend class InstructionSet;
 
         /// The minimum X-values per row that have any data.
         std::vector<std::vector<int32_t>> xStarts;
@@ -160,6 +177,9 @@ class FungeWorld {
         FungeWorld(const std::vector<std::vector<std::u32string>>& data, const Vector& low, const Vector& high);
 };
 
+/// Cleans up and exits the program with an exit code.
+///
+/// @param code  the exit code
 void quit(int code);
 
 #endif

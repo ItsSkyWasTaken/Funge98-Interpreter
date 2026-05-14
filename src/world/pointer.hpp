@@ -15,10 +15,6 @@ enum class PointerState {
     /// state, it pushes that ASCII value onto the stack.
     STRING,
 
-    /// "Comment mode": toggled via semicolons. Anything the pointer steps over while in this state is ignored, until it
-    /// hits another semicolon.
-    COMMENT,
-
     /// The pointer stops and exits the world at the end of the tick.
     EXITING
 };
@@ -80,12 +76,28 @@ class InstructionPointer {
         /// @return  the current storage offset of this instruction pointer
         [[nodiscard]] const Vector& getOffset() const;
 
+        /// Sets this pointer's current location.
+        ///
+        /// @param v  the new location
         void setLocation(const Vector& v);
 
+        /// Sets this pointer's current location.
+        ///
+        /// @param x  the new location's x-coordinate
+        /// @param y  the new location's y-coordinate
+        /// @param z  the new location's z-coordinate
         void setLocation(int32_t x, int32_t y, int32_t z);
 
+        /// Sets this pointer's current delta.
+        ///
+        /// @param v  the new delta
         void setDelta(const Vector& v);
 
+        /// Sets this pointer's current delta.
+        ///
+        /// @param x  the new delta's x-coordinate
+        /// @param y  the new delta's y-coordinate
+        /// @param z  the new delta's z-coordinate
         void setDelta(int32_t x, int32_t y, int32_t z);
 
         /// Updates this pointer's current mode.
@@ -103,6 +115,13 @@ class InstructionPointer {
         /// @return  this pointer's stack
         [[nodiscard]] Stack& getStack() const;
 
+        /// Starts a new block.
+        void startBlock();
+
+        /// Ends the last started block.
+        void endBlock();
+
+        /// Destructor. Deletes the associated stack.
         ~InstructionPointer();
 
     private:

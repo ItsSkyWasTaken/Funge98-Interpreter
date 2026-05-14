@@ -5,33 +5,38 @@
 #include <iostream>
 #include <limits>
 
-std::unordered_map<char32_t, std::function<void(InstructionPointer&)>> InstructionSet::commands;
+std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> InstructionSet::commands;
 FungeWorld* InstructionSet::world = nullptr;
 
 void InstructionSet::load(FungeWorld& w) {
     world = &w;
 
-    commands[U'!'] = [](const InstructionPointer& ip){
+    commands[U'!'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         stack.push(!stack.pop());
+        return true;
     };
 
     commands[U'"'] = [](InstructionPointer& ip) {
         ip.setPointerState(PointerState::STRING);
+        return true;
     };
 
     commands[U'#'] = [](InstructionPointer& ip) {
         ip.advance(1);
+        return true;
     };
 
     commands[U'$'] = [](const InstructionPointer& ip) {
         ip.getStack().pop();
+        return true;
     };
 
     commands[U'%'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
         stack.push(a % b);
+        return true;
     };
 
     commands[U'&'] = [](const InstructionPointer& ip) {
@@ -39,15 +44,16 @@ void InstructionSet::load(FungeWorld& w) {
         while(!(std::cin >> n)) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << std::endl;
         }
 
         ip.getStack().push(n);
+        return true;
     };
 
     commands[U'\''] = [](InstructionPointer& ip) {
         ip.advance(1);
         ip.getStack().push(world->get(ip.getLocation()));
+        return true;
     };
 
     commands[U'*'] = [](const InstructionPointer& ip) {
@@ -58,6 +64,7 @@ void InstructionSet::load(FungeWorld& w) {
 
         // Cast product back to a signed integer.
         stack.push(static_cast<int32_t>(a * b));
+        return true;
     };
 
     commands[U'+'] = [](const InstructionPointer& ip) {
@@ -68,10 +75,12 @@ void InstructionSet::load(FungeWorld& w) {
 
         // Cast sum back to a signed integer.
         stack.push(static_cast<int32_t>(a + b));
+        return true;
     };
 
     commands[U','] = [](const InstructionPointer& ip) {
         std::cout << static_cast<char>(ip.getStack().popChar());
+        return true;
     };
 
     commands[U'-'] = [](const InstructionPointer& ip) {
@@ -82,84 +91,105 @@ void InstructionSet::load(FungeWorld& w) {
 
         // Cast difference back to a signed integer.
         stack.push(static_cast<int32_t>(a - b));
+        return true;
     };
 
     commands[U'.'] = [](const InstructionPointer& ip) {
         std::cout << ip.getStack().pop() << " ";
+        return true;
     };
 
     commands[U'/'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
         stack.push(a / b);
+        return true;
     };
 
     commands[U'0'] = [](const InstructionPointer& ip) {
         ip.getStack().push(0);
+        return true;
     };
 
     commands[U'1'] = [](const InstructionPointer& ip) {
         ip.getStack().push(1);
+        return true;
     };
 
     commands[U'2'] = [](const InstructionPointer& ip) {
         ip.getStack().push(2);
+        return true;
     };
 
     commands[U'3'] = [](const InstructionPointer& ip) {
         ip.getStack().push(3);
+        return true;
     };
 
     commands[U'4'] = [](const InstructionPointer& ip) {
         ip.getStack().push(4);
+        return true;
     };
 
     commands[U'5'] = [](const InstructionPointer& ip) {
         ip.getStack().push(5);
+        return true;
     };
 
     commands[U'6'] = [](const InstructionPointer& ip) {
         ip.getStack().push(6);
+        return true;
     };
 
     commands[U'7'] = [](const InstructionPointer& ip) {
         ip.getStack().push(7);
+        return true;
     };
 
     commands[U'8'] = [](const InstructionPointer& ip) {
         ip.getStack().push(8);
+        return true;
     };
 
     commands[U'9'] = [](const InstructionPointer& ip) {
         ip.getStack().push(9);
+        return true;
     };
 
     commands[U':'] = [](const InstructionPointer& ip) {
         ip.getStack().duplicate();
+        return true;
     };
 
     commands[U'<'] = [](InstructionPointer& ip) {
         ip.setDelta(-1, 0, 0);
+        return true;
     };
 
     commands[U'>'] = [](InstructionPointer& ip) {
         ip.setDelta(1, 0, 0);
+        return true;
     };
 
     commands[U'?'] = [](InstructionPointer& ip) {
+        // ReSharper disable once CppDFANullDereference
         ip.setDelta(Vector::random(world->dimensions));
+        return true;
     };
 
     commands[U'@'] = [](InstructionPointer& ip) {
         ip.setPointerState(PointerState::EXITING);
+        return true;
     };
 
     commands[U'['] = [](InstructionPointer& ip) {
-        if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
-            ip.setDelta(-delta.getX(), 0, 0);
-        } else {
-            ip.setDelta(delta.getY(), -delta.getX(), delta.getZ());
+        const Vector& delta = ip.getDelta();
+        if(delta.dimensions == 1) {
+            return false;
         }
+
+        ip.setDelta(delta.getY(), -delta.getX(), delta.getZ());
+        return true;
     };
 
     commands[U'\\'] = [](const InstructionPointer& ip) {
@@ -167,93 +197,180 @@ void InstructionSet::load(FungeWorld& w) {
         const int32_t b = stack.pop(), a = stack.pop();
         stack.push(b);
         stack.push(a);
+        return true;
     };
 
     commands[U']'] = [](InstructionPointer& ip) {
-        if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
-            ip.setDelta(-delta.getX(), 0, 0);
-        } else {
-            ip.setDelta(-delta.getY(), delta.getX(), delta.getZ());
+        const Vector& delta = ip.getDelta();
+        if(delta.dimensions == 1) {
+            return false;
         }
+
+        ip.setDelta(-delta.getY(), delta.getX(), delta.getZ());
+        return true;
     };
 
     commands[U'^'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
-            ip.setDelta(-delta.getX(), 0, 0);
-        } else {
-            ip.setDelta(0, -1, 0);
+            return false;
         }
+
+        ip.setDelta(0, -1, 0);
+        return true;
     };
 
     commands[U'_'] = [](InstructionPointer& ip) {
         ip.setDelta(ip.getStack().pop() ? -1 : 1, 0, 0);
+        return true;
     };
 
     commands[U'`'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
         stack.push(a > b);
+        return true;
     };
 
     commands[U'a'] = [](const InstructionPointer& ip) {
         ip.getStack().push(10);
+        return true;
     };
 
     commands[U'b'] = [](const InstructionPointer& ip) {
         ip.getStack().push(11);
+        return true;
     };
 
     commands[U'c'] = [](const InstructionPointer& ip) {
         ip.getStack().push(12);
+        return true;
     };
 
     commands[U'd'] = [](const InstructionPointer& ip) {
         ip.getStack().push(13);
+        return true;
     };
 
     commands[U'e'] = [](const InstructionPointer& ip) {
         ip.getStack().push(14);
+        return true;
     };
 
     commands[U'f'] = [](const InstructionPointer& ip) {
         ip.getStack().push(15);
+        return true;
     };
 
     commands[U'g'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         stack.push(world->get(ip.getOffset() + stack.popVector(world->dimensions)));
+        return true;
     };
 
     commands[U'h'] = [](InstructionPointer& ip) {
-        if(const Vector& delta = ip.getDelta(); delta.dimensions == 3) {
-            ip.setDelta(0, 0, -1);
-        } else {
-            ip.setDelta(-delta.getX(), -delta.getY(), 0);
+        if(const Vector& delta = ip.getDelta(); delta.dimensions != 3) {
+            return false;
         }
+
+        ip.setDelta(0, 0, -1);
+        return true;
+    };
+
+    // TODO: implement input command
+    commands[U'i'] = [](InstructionPointer& _) {
+        return false;
     };
 
     commands[U'j'] = [](InstructionPointer& ip) {
         ip.advance(ip.getStack().pop());
+        return true;
+    };
+
+    commands[U'k'] = [](InstructionPointer& ip) {
+        const Vector old = ip.getLocation();
+        const int32_t n = ip.getStack().pop();
+
+        if(n < 0) {
+            return false;
+        }
+
+        ip.advance(1);
+        auto c = static_cast<uint32_t>(world->get(ip.getLocation()));
+
+        Retry:
+        while(c > 126 || c <= 32) {
+            ip.advance(1);
+            c = static_cast<uint32_t>(world->get(ip.getLocation()));
+
+            if(!world->boundsCheck(ip)) {
+                ip.setLocation(old);
+                return false;
+            }
+        }
+
+        if(c == U';') {
+            ip.advance(1);
+            c = static_cast<uint32_t>(world->get(ip.getLocation()));
+            while(c != U';') {
+                ip.advance(1);
+                c = static_cast<uint32_t>(world->get(ip.getLocation()));
+
+                if(!world->boundsCheck(ip)) {
+                    ip.setLocation(old);
+                    return false;
+                }
+            }
+
+            ip.advance(1);
+            c = static_cast<uint32_t>(world->get(ip.getLocation()));
+            goto Retry;
+        }
+
+        if(supports(c)) {
+            std::cout << "Entered" << std::endl;
+            if(n == 0) {
+                return true;
+            }
+
+            for(int i = 0; i < n; i++) {
+                if(!execute(ip)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        ip.setLocation(old);
+        return false;
     };
 
     commands[U'l'] = [](InstructionPointer& ip) {
-        if(const Vector& delta = ip.getDelta(); delta.dimensions == 3) {
-            ip.setDelta(0, 0, 1);
-        } else {
-            ip.setDelta(-delta.getX(), -delta.getY(), 0);
+        if(const Vector& delta = ip.getDelta(); delta.dimensions != 3) {
+            return false;
         }
+
+        ip.setDelta(0, 0, 1);
+        return true;
     };
 
     commands[U'm'] = [](InstructionPointer& ip) {
-        if(const Vector& delta = ip.getDelta(); delta.dimensions == 3) {
-            ip.setDelta(0, 0, ip.getStack().pop() ? -1 : 1);
-        } else {
-            ip.setDelta(-delta.getX(), -delta.getY(), 0);
+        if(const Vector& delta = ip.getDelta(); delta.dimensions != 3) {
+            return false;
         }
+
+        ip.setDelta(0, 0, ip.getStack().pop() ? -1 : 1);
+        return true;
     };
 
     commands[U'n'] = [](const InstructionPointer& ip) {
         ip.getStack().clear();
+        return true;
+    };
+
+    // TODO: implement output command
+    commands[U'o'] = [](InstructionPointer& _) {
+        return false;
     };
 
     commands[U'p'] = [](const InstructionPointer& ip) {
@@ -261,39 +378,53 @@ void InstructionSet::load(FungeWorld& w) {
         const Vector& v = stack.popVector(world->dimensions);
         const int32_t n = stack.pop();
         world->put(ip.getOffset() + v, n);
+        return true;
     };
 
     commands[U'q'] = [](const InstructionPointer& ip) {
         quit(ip.getStack().pop());
+        return true;
     };
 
     commands[U'r'] = [](InstructionPointer& ip) {
-        ip.setLocation(ip.getDelta() * -1);
+        ip.setDelta(ip.getDelta() * -1);
+        return true;
     };
 
     commands[U's'] = [](const InstructionPointer& ip) {
         world->put(ip.getLocation() + ip.getDelta(), ip.getStack().popChar());
+        return true;
     };
 
     commands[U't'] = [](const InstructionPointer& ip) {
         InstructionPointer* ip2 = ip.split();
         ip2->advance(1);
         world->pointers.push(ip2);
+        return true;
+    };
+
+    commands[U'u'] = [](const InstructionPointer& ip) {
+        if(ip.getStack().size() < 2) {
+            return false;
+        }
+
+        ip.getStack().transfer(ip.getStack().pop());
+        return true;
     };
 
     commands[U'v'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
-            ip.setDelta(-delta.getX(), 0, 0);
-        } else {
-            ip.setDelta(0, 1, 0);
+            return false;
         }
+
+        ip.setDelta(0, 1, 0);
+        return true;
     };
 
     commands[U'w'] = [](InstructionPointer& ip) {
         const Vector& delta = ip.getDelta();
         if(delta.dimensions == 1) {
-            ip.setDelta(-delta.getX(), 0, 0);
-            return;
+            return false;
         }
 
         Stack& stack = ip.getStack();
@@ -302,26 +433,52 @@ void InstructionSet::load(FungeWorld& w) {
         } else if(a < b) {
             ip.setDelta(delta.getY(), -delta.getX(), delta.getZ());
         }
+
+        return true;
     };
 
     commands[U'x'] = [](InstructionPointer& ip) {
         ip.setDelta(ip.getStack().popVector(ip.getDelta().dimensions));
+        return true;
     };
 
-    commands[U'z'] = [](InstructionPointer& _) { /* no operation */ };
+    // TODO: implement sysinfo command
+    commands[U'y'] = [](InstructionPointer& _) {
+        return false;
+    };
+
+    commands[U'z'] = [](InstructionPointer& _) {
+        return true;
+    };
+
+    commands[U'{'] = [](InstructionPointer& ip) {
+        ip.startBlock();
+        return true;
+    };
 
     commands[U'|'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
-            ip.setDelta(-delta.getX(), 0, 0);
-        } else {
-            ip.setDelta(0, ip.getStack().pop() ? -1 : 1, 0);
+            return false;
         }
+
+        ip.setDelta(0, ip.getStack().pop() ? -1 : 1, 0);
+        return true;
+    };
+
+    commands[U'}'] = [](InstructionPointer& ip) {
+        if(ip.getStack().size() < 2) {
+            return false;
+        }
+
+        ip.endBlock();
+        return true;
     };
 
     commands[U'~'] = [](const InstructionPointer& ip) {
         char c;
         std::cin.get(c);
         ip.getStack().push(static_cast<char32_t>(c));
+        return true;
     };
 }
 
@@ -329,16 +486,16 @@ bool InstructionSet::supports(const char32_t command) {
     return commands.contains(command);
 }
 
-void InstructionSet::execute(InstructionPointer& ip) {
-    commands[world -> get(ip.getLocation())](ip);
+bool InstructionSet::execute(InstructionPointer& ip) {
+    if(!commands[world -> get(ip.getLocation())](ip)) {
+        ip.setDelta(ip.getDelta() * -1);
+        return false;
+    }
+
+    return true;
 }
 
 FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
-    if(!file.is_open()) {
-        std::cerr << "Could not read file" << std::endl;
-        std::exit(2);
-    }
-
     std::vector<std::vector<std::u32string>> data;
     data.emplace_back();
 
@@ -379,11 +536,6 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
 
 FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int8_t dim) {
     std::vector<std::vector<std::u32string>> data;
-
-    if(!file.is_open()) {
-        std::cerr << "Could not read file" << std::endl;
-        std::exit(2);
-    }
 
     if(dim == 1) {
         std::string line;
@@ -591,9 +743,32 @@ void FungeWorld::tick() {
         }
     } else {
         auto c = static_cast<uint32_t>(get(ip.getLocation()));
+
+        Retry:
         while(c > 126 || c <= 32) {
             ip.advance(1);
             c = static_cast<uint32_t>(get(ip.getLocation()));
+
+            if(!boundsCheck(ip)) {
+                goto Out;
+            }
+        }
+
+        if(c == U';') {
+            ip.advance(1);
+            c = static_cast<uint32_t>(get(ip.getLocation()));
+            while(c != U';') {
+                ip.advance(1);
+                c = static_cast<uint32_t>(get(ip.getLocation()));
+
+                if(!boundsCheck(ip)) {
+                    goto Out;
+                }
+            }
+
+            ip.advance(1);
+            c = static_cast<uint32_t>(get(ip.getLocation()));
+            goto Retry;
         }
 
         if(InstructionSet::supports(c)) {
@@ -603,6 +778,7 @@ void FungeWorld::tick() {
         }
     }
 
+    Out:
     if(ip.getPointerState() == PointerState::EXITING) {
         delete &ip;
     } else {
