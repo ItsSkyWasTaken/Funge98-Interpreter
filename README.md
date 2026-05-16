@@ -1,0 +1,82 @@
+# Funge98
+
+This program is yet another Funge98 interpreter, this time written in C++.
+
+I've learned C++ just under a year ago but haven't really gotten to do much with it since then. Then later, I came 
+across the concept of esoteric programming languages, and I felt compelled to write an interpreter for one, so here we 
+are!
+
+## Interpreter Statistics
+
+This interpreter is still quite new (it's only a week old), and not to mention it's my first major project in C++; as 
+such, it is unstable and will undergo many rapid change in the near future. A few features are missing and others are 
+inconsistent with the standard Funge98 specification, which I plan to sort out as I explore both C++ and Funge98 more. 
+As such, some important details about this interpreter are as follows:
+
+- Missing instructions (WIP): `y`, `i`, `o`, `(`, and `)` (and by extension, all uppercase letters)
+- String mode: add all characters "as is"; no escape sequences or whitespace collapsing
+- The form feed character is not yet supported in Trefunge files; currently, new planes on the z-axis can be added by
+  writing `\f` on an otherwise empty line.
+
+These are the details that would be received as a result of the GetSysInfo (`y`) command:
+
+- Concurrent Funge98 (`t`) enabled: **Y**
+- Input (`i`) enabled: **N** (planned)
+- Output (`o`) enabled: **N** (planned)
+- Execute (`=`) enabled: **N** by default; must specify `--execute` or `-e` for **Y**
+- I/O: **buffered**
+- Cell size: **32-bit**
+- Handprint: **1230198612** (`0x49535754`)
+- Version: v0.1.1 (`101`)
+- Operating paradigm: Equivalent to C-language `system()`
+
+## Running a Funge98 File
+
+**Note:** The compiled executable is currently only provided for Windows. Since this program uses only standard C++ 
+libraries and no third-party libraries, the source code should compile and run as intended on any platform, but macOS 
+and Linux users will need to download the source code (provided in a ZIP) and compile it themselves with a C++26 
+compiler.
+
+Funge98 files can be run from the command line by specifying the file name as the first argument:  
+```
+funge98 example.b98
+```
+
+By default, this interpreter starts in a "sandbox mode", and the execute (`=`) command, along with the input (`i`) and 
+output (`o`) commands when they gain support, are disabled. When fingerprint support is added, any fingerprint command 
+that relates to executing system commands or reading, creating, modifying, or deleting files will also be disabled by 
+default. To enable them for a program, you must use flags when running the Funge98 file:
+- To enable `i` and related fingerprint instructions (anything that can read files or folders), use `--read`, `-r`, or 
+  `-i`.
+- To enable `o` and related fingerprint instructions (anything that can create, modify, or delete files or folders), use
+  `--write`, `-w`, or `-o`.
+- To enable `=` and related fingerprint instructions (anything that can interact with system-level data or execute 
+  commands), use `--execute` or `-e`.
+
+These flags may be specified in any order, but they must appear after the Funge98 file. For example, both of these work:  
+```
+funge98 example.b98 -r -e 
+funge98 example.b98 -e -r
+```
+
+Additionally, this interpreter was set up to automatically detect the dimensions of the supplied file and load it as a
+Unefunge, Befunge, or Trefunge program. Any file that has only one line is loaded as a Unefunge program, any file that 
+has a line with `\f` will be loaded as a Trefunge program, and any file that does not fit either will be loaded as a
+Befunge program. To override the default, use `--dim=VALUE`. This flag may also appear in any order alongside the 
+permission flags, but it must also appear after the Funge98 file:  
+```
+funge98 example.b98 -r --dim=3
+```
+
+If the Funge98 file supports extra arguments (which can be obtained either through `y` as the 19th entry or with 
+fingerprint instructions), these can be passed after the `--args` flag. This flag **must** be the last flag to appear,
+and anything else after it will be considered a program argument. When reading arguments, the Funge98 file is treated as
+the first argument. 
+
+For example, this command runs a Funge98 file called `example.b98`, granting it reading permissions and specifying that
+it's a Befunge file. The arguments listed will be [`example.b98`, `Example`, `Another Example`, `-w`]. Note that writing
+permissions were not granted since `-w` was passed *after* the `--args` flag, so it was treated like a normal 
+argument.
+```
+funge98 example.b98 -r --dim=2 --args Example "Another Example" -w
+```
