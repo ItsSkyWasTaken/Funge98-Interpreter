@@ -2,6 +2,7 @@
 /shelf/
 /workspace.xml
 /editor.xml
+/dictionaries/
 # Editor-based HTTP Client requests
 /httpRequests/
 # Ignored default folder with query files
