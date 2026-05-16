@@ -1,1 +1,20 @@
+# Ignore production folders
+/cmake-build-debug
+/cmake-build-release
+
+# Ignore test files
 /test-resources
+
+# Default ignored files
+.idea/shelf/
+.idea/workspace.xml
+.idea/editor.xml
+# Dictionaries
+.idea/dictionaries/
+# Editor-based HTTP Client requests
+.idea/httpRequests/
+# Ignored default folder with query files
+.idea/queries/
+# Datasource local storage ignored files
+.idea/dataSources/
+.idea/dataSources.local.xml
