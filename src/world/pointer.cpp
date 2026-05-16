@@ -2,17 +2,19 @@
 
 #include "vector.hpp"
 
-InstructionPointer::InstructionPointer(const int8_t dimensions):
+int32_t InstructionPointer::nextId = 0;
+
+InstructionPointer::InstructionPointer(const int32_t dimensions):
         InstructionPointer(Vector::origin(dimensions), Vector::east(dimensions)) {}
 
 InstructionPointer::InstructionPointer(const Vector& location):
         InstructionPointer(location, Vector::east(location.dimensions)) {}
 
 InstructionPointer::InstructionPointer(const Vector& location, const Vector& delta):
-        location(location), delta(delta), storageOffset(Vector::origin(location.dimensions)), stack(new Stack()), mode(PointerState::NORMAL) {}
+        location(location), delta(delta), storageOffset(Vector::origin(location.dimensions)), stack(new Stack()), mode(PointerState::NORMAL), id(nextId++) {}
 
 InstructionPointer::InstructionPointer(const Vector& location, const Vector& delta, const Vector& offset, const Stack* stack):
-        location(location), delta(delta), storageOffset(offset), stack(new Stack(*stack)), mode(PointerState::NORMAL) {}
+        location(location), delta(delta), storageOffset(offset), stack(new Stack(*stack)), mode(PointerState::NORMAL), id(nextId++) {}
 
 InstructionPointer* InstructionPointer::split() const {
     return new InstructionPointer(location, -delta, storageOffset, stack);
@@ -60,6 +62,16 @@ PointerState InstructionPointer::getPointerState() const {
 
 Stack& InstructionPointer::getStack() const {
     return *stack;
+}
+
+std::vector<int32_t> InstructionPointer::stackSizes() const {
+    std::vector<int32_t> sizes;
+
+    for(const std::stack<int32_t>& s : stack->ss) {
+        sizes.push_back(static_cast<int32_t>(s.size()));
+    }
+
+    return sizes;
 }
 
 void InstructionPointer::startBlock() {

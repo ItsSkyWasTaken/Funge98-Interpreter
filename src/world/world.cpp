@@ -1,12 +1,21 @@
+// ReSharper disable CppDFANullDereference
 #include "world.hpp"
 
-#include <string>
+#include <chrono>
+#include <cmath>
+#include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <limits>
+#include <ranges>
+#include <sstream>
+#include <string>
 
 std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> InstructionSet::commands;
 FungeWorld* InstructionSet::world = nullptr;
+int InstructionSet::pointerPosition = 0;
+int InstructionSet::ansiFlag = 0;
+int InstructionSet::ansiParameter = 0;
 
 void InstructionSet::load(FungeWorld& w) {
     world = &w;
@@ -40,10 +49,18 @@ void InstructionSet::load(FungeWorld& w) {
     };
 
     commands[U'&'] = [](const InstructionPointer& ip) {
+        std::string input;
         int32_t n;
-        while(!(std::cin >> n)) {
+
+        getline(std::cin, input);
+        std::istringstream iss(input);
+
+        while(!(iss >> n)) {
             std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "\033[1F\033[" << pointerPosition << "C\033[0J";
+
+            getline(std::cin, input);
+            iss = std::istringstream(input);
         }
 
         ip.getStack().push(n);
@@ -79,7 +96,63 @@ void InstructionSet::load(FungeWorld& w) {
     };
 
     commands[U','] = [](const InstructionPointer& ip) {
-        std::cout << static_cast<char>(ip.getStack().popChar());
+        const char32_t c = ip.getStack().popChar();
+        std::cout << static_cast<char>(c);
+
+        switch(ansiFlag) {
+            case 2:
+                if(c >= 64 && c < 127) {
+                    ansiFlag = 0;
+
+                    switch(c) {
+                        case U'C':
+                            pointerPosition += ansiParameter;
+                            break;
+                        case U'D':
+                            pointerPosition -= std::min(ansiParameter, pointerPosition);
+                            break;
+                        case U'E':
+                        case U'F':
+                            pointerPosition = 0;
+                            break;
+                        case U'G':
+                            pointerPosition = ansiParameter - 1;
+                            break;
+                        default:
+                            // ignore
+                            break;
+                    }
+
+                    ansiParameter = 0;
+                } else if(c >= 48 && c < 58) {
+                    ansiParameter *= 10;
+                    ansiParameter += static_cast<int>(c - '0');
+                }
+                break;
+            case 1:
+                if(c == U'[') {
+                    ansiFlag = 2;
+                    return true;
+                }
+
+                ansiFlag = 0;
+            default:
+                if(c > 9 && c < 13) {
+                    pointerPosition = 0;
+                } else if(c == 8) {
+                    if(pointerPosition > 0) {
+                        pointerPosition -= 1;
+                    }
+                } else if(c == 9) {
+                    const int space = 8 - pointerPosition % 8;
+                    pointerPosition += space == 0 ? 8 : space;
+                } else if(c == 27) {
+                    ansiFlag = 1;
+                } else if(c >= 32 && c != 127) {
+                    pointerPosition += 1;
+                }
+        }
+
         return true;
     };
 
@@ -95,7 +168,9 @@ void InstructionSet::load(FungeWorld& w) {
     };
 
     commands[U'.'] = [](const InstructionPointer& ip) {
-        std::cout << ip.getStack().pop() << " ";
+        const int32_t n = ip.getStack().pop();
+        std::cout << n << " ";
+        pointerPosition += n == 0 ? 2 : static_cast<int>(log10(abs(n))) + 2 + (n < 0 ? 1 : 0);
         return true;
     };
 
@@ -166,13 +241,24 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    commands[U'='] = [](const InstructionPointer& ip) {
+        if(!world->canExecute()) {
+            return false;
+        }
+
+        const std::u32string command = ip.getStack().popString();
+        const char* converted = toUtf8(command).c_str();
+        const int32_t status = std::system(converted);
+        ip.getStack().push(status);
+        return true;
+    };
+
     commands[U'>'] = [](InstructionPointer& ip) {
         ip.setDelta(1, 0, 0);
         return true;
     };
 
     commands[U'?'] = [](InstructionPointer& ip) {
-        // ReSharper disable once CppDFANullDereference
         ip.setDelta(Vector::random(world->dimensions));
         return true;
     };
@@ -327,7 +413,6 @@ void InstructionSet::load(FungeWorld& w) {
         }
 
         if(supports(c)) {
-            std::cout << "Entered" << std::endl;
             if(n == 0) {
                 return true;
             }
@@ -442,9 +527,156 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
-    // TODO: implement sysinfo command
-    commands[U'y'] = [](InstructionPointer& _) {
-        return false;
+    commands[U'y'] = [](const InstructionPointer& ip) {
+        Stack& stack = ip.getStack();
+        const int32_t c = stack.pop();
+        const std::vector<int32_t> sizes = ip.stackSizes();
+
+        switch(c) {
+            // If out of range, push everything
+            default:
+
+            // Case 20: push environment variables onto the stack as null-terminated strings (unordered); the end is
+            // terminated by another null character.
+            case 20: {
+                stack.push(0);
+                for(const std::u32string& envar : world->envars) {
+                    stack.push(envar);
+                }
+
+                if(c == 20) break;
+            }
+
+            // Case 19: push arguments onto the stack as null-terminated strings; the end is terminated by another null.
+            case 19: {
+                stack.push(0);
+                for(const std::u32string& arg : world->args | std::views::reverse) {
+                    stack.push(arg);
+                }
+
+                if(c == 19) break;
+            }
+
+            // Case 18: push the sizes of each stack in the SS; TOSS is on top.
+            case 18: {
+                for(const int32_t size : sizes | std::views::reverse) {
+                    stack.push(size);
+                }
+                if(c == 18) break;
+            }
+
+            // Case 17: push the number of stacks in the SS onto the stack.
+            case 17: {
+                stack.push(static_cast<int32_t>(sizes.size()));
+                if(c == 17) break;
+            }
+
+            // Case 16: push current time as an int in the form of (hours * 65536) + (minutes * 256) + (seconds).
+            case 16: {
+                const std::time_t t = std::time(nullptr);
+                const std::tm* localTime = std::localtime(&t);
+                stack.push(localTime->tm_hour * 65536 + localTime->tm_min * 256 + localTime->tm_sec);
+
+                if(c == 16) break;
+            }
+
+            // Case 15: push current date as an int in the form (yearsSince1900 * 65536) + (month * 256) + (dayOfMonth).
+            case 15: {
+                const std::time_t t = std::time(nullptr);
+                const std::tm* localTime = std::localtime(&t);
+                stack.push(localTime->tm_year * 65536 + (localTime->tm_mon + 1) * 256 + localTime->tm_mday);
+
+                if(c == 15) break;
+            }
+
+            // Case 14: push high corner of region with non-space cells, relative to low the corner.
+            case 14: {
+                stack.push(world->high - world->low);
+                if(c == 14) break;
+            }
+
+            // Case 13: push low corner of region with non-space cells, relative to the origin.
+            case 13: {
+                stack.push(world->low);
+                if(c == 13) break;
+            }
+
+            // Case 12: push pointer's storage offset.
+            case 12: {
+                stack.push(ip.getOffset());
+                if(c == 12) break;
+            }
+
+            // Case 11: push pointer's delta.
+            case 11: {
+                stack.push(ip.getDelta());
+                if(c == 11) break;
+            }
+
+            // Case 10: push pointer's location.
+            case 10: {
+                stack.push(ip.getLocation());
+                if(c == 10) break;
+            }
+
+            // Case 9: push pointer's team number (not relevant in this interpreter; no networking capabilities yet).
+            case 9: {
+                stack.push(0);
+                if(c == 9) break;
+            }
+
+            // Case 8: push pointer's unique ID.
+            case 8: {
+                stack.push(ip.id);
+                if(c == 8) break;
+            }
+
+            // Case 7: push number of world dimensions.
+            case 7: {
+                stack.push(world->dimensions);
+                if(c == 7) break;
+            }
+
+            // Case 6: push file separator character.
+            case 6: {
+                stack.push(static_cast<char32_t>(std::filesystem::path::preferred_separator));
+                if(c == 6) break;
+            }
+
+            // Case 5: push Operating Paradigm - equivalent to system() if enabled.
+            case 5: {
+                stack.push(world->canExecute() ? 1 : 0);
+                if(c == 5) break;
+            }
+
+            // Case 4: push version number - v0.1.1 = 101.
+            case 4: {
+                stack.push(101);
+                if(c == 4) break;
+            }
+
+            // Case 3: push handprint - ISWT (0x49535754).
+            case 3: {
+                stack.push(0x49535754);
+                if(c == 3) break;
+            }
+
+            // Case 2: push number of bytes per cell - 32-bits = 4 bytes.
+            case 2: {
+                stack.push(4);
+                if(c == 2) break;
+            }
+
+            // Case 1: push flags concerning availability of (=, o, i, t).
+            case 1: {
+                int32_t bits = 1;
+                bits |= world->canExecute() ? 8 : 0;
+
+                stack.push(bits);
+            }
+        }
+
+        return true;
     };
 
     commands[U'z'] = [](InstructionPointer& _) {
@@ -478,6 +710,11 @@ void InstructionSet::load(FungeWorld& w) {
         char c;
         std::cin.get(c);
         ip.getStack().push(static_cast<char32_t>(c));
+
+        if(c > 9 && c < 13) {
+            pointerPosition = 0;
+        }
+
         return true;
     };
 }
@@ -631,8 +868,8 @@ void FungeWorld::put(const Vector& location, const char32_t value) {
     const int32_t z = location.getZ() - zStart;
     if(location.getY() < yStarts[z]) {
         data[z].insert(data[z].begin(), yStarts[z] - location.getY(), std::u32string());
-        yStarts[z] = location.getY();
         xStarts[z].insert(xStarts[z].begin(), yStarts[z] - location.getY(), 0);
+        yStarts[z] = location.getY();
 
         if(location.getY() < low.getY()) {
             low -= Vector(0, low.getY() - location.getY(), 0);
@@ -679,6 +916,14 @@ bool FungeWorld::canWrite() const {
 
 bool FungeWorld::canExecute() const {
     return execute;
+}
+
+void FungeWorld::passArg(const std::u32string& arg) {
+    args.push_back(arg);
+}
+
+void FungeWorld::passEnvar(const std::u32string& envar) {
+    envars.push_back(envar);
 }
 
 FungeWorld::FungeWorld(const std::vector<std::vector<std::u32string>>& data, const Vector& low, const Vector& high):
@@ -798,5 +1043,13 @@ void FungeWorld::tick() {
         tick();
     } else {
         quit(0);
+    }
+}
+
+FungeWorld::~FungeWorld() {
+    while(!pointers.empty()) {
+        const InstructionPointer* ip = pointers.front();
+        pointers.pop();
+        delete ip;
     }
 }

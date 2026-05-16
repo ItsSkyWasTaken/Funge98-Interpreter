@@ -27,7 +27,7 @@ class InstructionPointer {
         /// an empty stack.
         ///
         /// @param dimensions  the number of dimensions in the world
-        explicit InstructionPointer(int8_t dimensions);
+        explicit InstructionPointer(int32_t dimensions);
 
         /// Creates a new instruction pointer at the specified location facing east, with a storage offset at the
         /// origin and an empty stack.
@@ -121,10 +121,19 @@ class InstructionPointer {
         /// Ends the last started block.
         void endBlock();
 
+        /// Gets the sizes of each stack, starting from the TOSS and ending with the BOSS.
+        [[nodiscard]] std::vector<int32_t> stackSizes() const;
+
+        /// The unique id of this pointer.
+        const int32_t id;
+
         /// Destructor. Deletes the associated stack.
         ~InstructionPointer();
 
     private:
+        /// The ID of the next pointer.
+        static int32_t nextId;
+
         /// The current position of this instruction pointer.
         Vector location;
 

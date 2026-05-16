@@ -46,6 +46,19 @@ class InstructionSet {
 
         /// A pointer to the world.
         static FungeWorld* world;
+
+        /// The column position of the text caret in the terminal. This facilitates deleting malformed input from
+        /// requests for numbers (which in turn facilitates doing more creative stuff with terminal art and graphics).
+        static int pointerPosition;
+
+        /// A number related to ANSI flags. \code 0\endcode if nothing is happening, \code 1\endcode if an escape
+        /// character has just been printed, and \code 2\endcode after the open bracket is printed but before the
+        /// closing character is printed.
+        static int ansiFlag;
+
+        /// The parameter passed into the ANSI escape sequence, used to determine how far, if at all, the text caret
+        /// moved as a result of the ANSI sequence.
+        static int ansiParameter;
 };
 
 /// The Funge World is where all the instructions and data are stored. It can be 1D, 2D, or 3D depending on how the
@@ -111,6 +124,16 @@ class FungeWorld {
         /// @return  whether this program can execute system commands
         [[nodiscard]] bool canExecute() const;
 
+        /// Passes an argument supplied by the command line.
+        ///
+        /// @param arg  the argument to pass
+        void passArg(const std::u32string& arg);
+
+        /// Passes an environment variable specified by the system.
+        ///
+        /// @param  envar  the variable to pass
+        void passEnvar(const std::u32string& envar);
+
         /// Starts the program.
         void start();
 
@@ -127,10 +150,14 @@ class FungeWorld {
         [[nodiscard]] bool boundsCheck(const InstructionPointer& ip) const;
 
         /// The number of dimensions that this world supports.
-        const int8_t dimensions;
+        const int32_t dimensions;
+
+        /// Destructor. Deletes all the instruction pointers.
+        ~FungeWorld();
 
     private:
         friend class InstructionSet;
+        friend void quit(int code);
 
         // TODO: add more memory-efficient means of storing far away data;
         // ideally we do not need to create 2 billion 2D vectors of 4-byte characters to store some faraway data.
@@ -149,6 +176,12 @@ class FungeWorld {
 
         /// The minimum Z-value that has any data.
         int32_t zStart;
+
+        /// A vector of arguments that were passed in when running this script via the terminal.
+        std::vector<std::u32string> args;
+
+        /// A vector of environment variables on the system.
+        std::vector<std::u32string> envars;
 
         /// The lower bound of the active region, inclusive.
         Vector low;
@@ -181,5 +214,19 @@ class FungeWorld {
 ///
 /// @param code  the exit code
 void quit(int code);
+
+/// Converts a string from UTF-32 to UTF-8.
+///
+/// @param s  the UTF-32 string to convert
+///
+/// @return  a UTF-8 representation of the supplied string
+std::string toUtf8(const std::u32string& s);
+
+/// Converts a string from UTF-8 to UTF-32.
+///
+/// @param s  the UTF-8 string to convert
+///
+/// @return  a UTF-32 representation of the supplied string
+std::u32string fromUtf8(const std::string& s);
 
 #endif

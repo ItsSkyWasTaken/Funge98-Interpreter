@@ -14,7 +14,7 @@ class Vector {
         /// @param dim  the number of dimensions for the location vector
         ///
         /// @return  a default location vector of the given dimension
-        static Vector origin(int8_t dim);
+        static Vector origin(int32_t dim);
 
         /// Generates a default delta vector of the specified dimension.
         ///
@@ -23,14 +23,14 @@ class Vector {
         /// @param dim  the number of dimensions for the delta vector
         ///
         /// @return  a default delta vector of the given dimension
-        static Vector east(int8_t dim);
+        static Vector east(int32_t dim);
 
         /// Generates a delta vector that points one unit in a random cardinal direction.
         ///
         /// @param dim  the number of dimensions the delta vector should have
         ///
         /// @return  the randomly generated delta vector
-        static Vector random(int8_t dim);
+        static Vector random(int32_t dim);
 
         /// Constructs a one-dimensional vector with the specified coordinate.
         ///
@@ -119,7 +119,7 @@ class Vector {
         Vector& operator=(const Vector& v);
 
         /// The number of dimensions on this vector.
-        const int8_t dimensions;
+        const int32_t dimensions;
 
         /// Gets the X-coordinate of this vector.
         ///

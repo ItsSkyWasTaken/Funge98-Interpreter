@@ -13,12 +13,12 @@ such, it is unstable and will undergo many rapid change in the near future. A fe
 inconsistent with the standard Funge98 specification, which I plan to sort out as I explore both C++ and Funge98 more. 
 As such, some important details about this interpreter are as follows:
 
-- Missing instructions (WIP): `y`, `i`, `o`, `(`, and `)` (and by extension, all uppercase letters)
+- Missing instructions (WIP): `i`, `o`, `(`, and `)` (and by extension, all uppercase letters)
 - String mode: add all characters "as is"; no escape sequences or whitespace collapsing
 - The form feed character is not yet supported in Trefunge files; currently, new planes on the z-axis can be added by
   writing `\f` on an otherwise empty line.
 
-These are the details that would be received as a result of the GetSysInfo (`y`) command:
+These are the details that are received as a result of the GetSysInfo (`y`) command:
 
 - Concurrent Funge98 (`t`) enabled: **Y**
 - Input (`i`) enabled: **N** (planned)

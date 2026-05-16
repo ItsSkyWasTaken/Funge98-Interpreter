@@ -2,7 +2,7 @@
 
 #include <random>
 
-Vector Vector::origin(const int8_t dim) {
+Vector Vector::origin(const int32_t dim) {
     switch(dim) {
         case 1:
             return {0};
@@ -13,7 +13,7 @@ Vector Vector::origin(const int8_t dim) {
     }
 }
 
-Vector Vector::east(const int8_t dim) {
+Vector Vector::east(const int32_t dim) {
     switch(dim) {
         case 1:
             return {1};
@@ -24,7 +24,7 @@ Vector Vector::east(const int8_t dim) {
     }
 }
 
-Vector Vector::random(const int8_t dim) {
+Vector Vector::random(const int32_t dim) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution d(0, 2 * dim - 1);
