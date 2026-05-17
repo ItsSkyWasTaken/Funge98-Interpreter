@@ -9,9 +9,9 @@ are!
 ## Interpreter Statistics
 
 This interpreter is still quite new (it's only a week old), and not to mention it's my first major project in C++; as 
-such, it is unstable and will undergo many rapid change in the near future. A few features are missing and others are 
+such, it is unstable and will undergo many rapid changes in the near future. A few features are missing and others are 
 inconsistent with the standard Funge98 specification, which I plan to sort out as I explore both C++ and Funge98 more. 
-As such, some important details about this interpreter are as follows:
+As such, some important details about this interpreter in its current state are as follows:
 
 - Missing instructions (WIP): `i`, `o`, `(`, and `)` (and by extension, all uppercase letters)
 - String mode: add all characters "as is"; no escape sequences or whitespace collapsing
@@ -43,9 +43,10 @@ funge98 example.b98
 ```
 
 By default, this interpreter starts in a "sandbox mode", and the execute (`=`) command, along with the input (`i`) and 
-output (`o`) commands when they gain support, are disabled. When fingerprint support is added, any fingerprint command 
-that relates to executing system commands or reading, creating, modifying, or deleting files will also be disabled by 
-default. To enable them for a program, you must use flags when running the Funge98 file:
+output (`o`) commands when they gain support, are disabled for security reasons. When fingerprint support gets added in 
+the future, any fingerprint command that relates to executing system commands or reading, creating, modifying, or 
+deleting files will also be disabled by default. To enable them for a program, you must use flags when running the 
+Funge98 file:
 - To enable `i` and related fingerprint instructions (anything that can read files or folders), use `--read`, `-r`, or 
   `-i`.
 - To enable `o` and related fingerprint instructions (anything that can create, modify, or delete files or folders), use
