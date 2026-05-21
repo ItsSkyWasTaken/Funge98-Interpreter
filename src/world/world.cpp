@@ -97,7 +97,8 @@ void InstructionSet::load(FungeWorld& w) {
 
     commands[U','] = [](const InstructionPointer& ip) {
         const char32_t c = ip.getStack().popChar();
-        std::cout << static_cast<char>(c);
+        const std::u32string s(1, c);
+        std::cout << toUtf8(s);
 
         switch(ansiFlag) {
             case 2:
@@ -707,14 +708,55 @@ void InstructionSet::load(FungeWorld& w) {
     };
 
     commands[U'~'] = [](const InstructionPointer& ip) {
-        char c;
-        std::cin.get(c);
-        ip.getStack().push(static_cast<char32_t>(c));
+        Stack& stack = ip.getStack();
+        // char c;
+        // std::cin.get(c);
+        // ip.getStack().push(static_cast<char32_t>(c));
 
-        if(c > 9 && c < 13) {
-            pointerPosition = 0;
+        const int first = std::cin.get();
+
+        if(first == EOF) {
+            std::cin.clear();
+            return false;
         }
 
+        const auto a = static_cast<uint8_t>(first);
+
+        if((a & 0x80) == 0) {
+            stack.push(a);
+
+            if(a > 9 && a < 13) {
+                pointerPosition = 0;
+            }
+
+            return true;
+        }
+
+        if((a & 0xE0) == 0xC0) {
+            const int b = std::cin.get();
+            if(b == EOF) return false;
+            stack.push((a & 0x1F) << 6 | static_cast<uint8_t>(b) & 0x3F);
+            return true;
+        }
+
+        if((a & 0xF0) == 0xE0) {
+            const int b = std::cin.get();
+            const int c = std::cin.get();
+            if(b == EOF || c == EOF) return false;
+            stack.push( (a & 0x0F) << 12 | (static_cast<uint8_t>(b) & 0x3F) << 6 | static_cast<uint8_t>(c) & 0x3F);
+            return true;
+        }
+
+        if((a & 0xF8) == 0xF0) {
+            const int b = std::cin.get();
+            const int c = std::cin.get();
+            const int d = std::cin.get();
+            if(b == EOF || c == EOF || d == EOF) return false;
+            stack.push( (a & 0x07) << 18 | (static_cast<uint8_t>(b) & 0x3F) << 12 | (static_cast<uint8_t>(c) & 0x3F) << 6 | static_cast<uint8_t>(d) & 0x3F);
+            return true;
+        }
+
+        stack.push(a);
         return true;
     };
 }
@@ -746,7 +788,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
 
             data.emplace_back();
         } else {
-            data.back().emplace_back(line.begin(), line.end());
+            data.back().push_back(fromUtf8(line));
 
             if(line.size() > maxRow) {
                 maxRow = line.size();
@@ -782,7 +824,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int8_t dim) {
         }
 
         data.emplace_back();
-        data.back().emplace_back(result.begin(), result.end());
+        data.back().push_back(fromUtf8(result));
         return new FungeWorld(data, Vector::origin(1), Vector(static_cast<int32_t>(result.size() - 1)));
     }
 
@@ -791,7 +833,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int8_t dim) {
         data.emplace_back();
         std::string line;
         while(std::getline(file, line)) {
-            data.back().emplace_back(line.begin(), line.end());
+            data.back().push_back(fromUtf8(line));
 
             if(line.size() > maxRow) {
                 maxRow = line.size();
@@ -812,7 +854,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int8_t dim) {
 
             data.emplace_back();
         } else {
-            data.back().emplace_back(line.begin(), line.end());
+            data.back().push_back(fromUtf8(line));
 
             if(line.size() > maxRow) {
                 maxRow = line.size();

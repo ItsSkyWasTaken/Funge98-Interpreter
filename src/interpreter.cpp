@@ -4,15 +4,33 @@
 
 #include "world/world.hpp"
 
-#if defined(_WIN32)
+#ifdef _WIN32
+    #include <windows.h>
     extern char** _environ;
     #define environ _environ
-#elif defined(__APPLE__)
+    UINT originalInCP, originalOutCP;
+#elifdef __APPLE__
     #include <crt_externs.h>
     #define environ (*_NSGetEnviron())
 #else
     extern char** environ;
 #endif
+
+void setupConsole() {
+    #ifdef _WIN32
+        originalInCP = GetConsoleCP();
+        originalOutCP = GetConsoleOutputCP();
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+    #endif
+}
+
+void restoreConsole() {
+    #ifdef _WIN32
+        SetConsoleCP(originalInCP);
+        SetConsoleOutputCP(originalOutCP);
+    #endif
+}
 
 FungeWorld* world;
 
@@ -23,6 +41,7 @@ void quit(const int code) {
               << " Program has finished running." << std::endl << " Exit code: " << code << std::endl
               << "================================================================" << std::endl;
 
+    restoreConsole();
     std::exit(code);
 }
 
@@ -57,16 +76,16 @@ std::u32string fromUtf8(const std::string& s) {
         char32_t c = 0;
         size_t bytesToRead = 0;
 
-        if (b <= 0x7F) {
+        if(b <= 0x7F) {
             c = b;
             bytesToRead = 0;
-        } else if ((b & 0xE0) == 0xC0) {
+        } else if((b & 0xE0) == 0xC0) {
             c = b & 0x1F;
             bytesToRead = 1;
-        } else if ((b & 0xF0) == 0xE0) {
+        } else if((b & 0xF0) == 0xE0) {
             c = b & 0x0F;
             bytesToRead = 2;
-        } else if ((b & 0xF8) == 0xF0) {
+        } else if((b & 0xF8) == 0xF0) {
             c = b & 0x07;
             bytesToRead = 3;
         } else {
@@ -175,6 +194,7 @@ int main(const int argc, char** argv) {
     }
 
     InstructionSet::load(w);
+    setupConsole();
 
     std::cout << " Starting!" << std::endl
               << "================================================================" << std::endl << std::endl;
