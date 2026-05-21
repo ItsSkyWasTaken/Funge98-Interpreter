@@ -63,8 +63,8 @@ funge98 example.b98 -e -r
 Additionally, this interpreter was set up to automatically detect the dimensions of the supplied file and load it as a
 Unefunge, Befunge, or Trefunge program. Any file that has only one line is loaded as a Unefunge program, any file that 
 has a line with `\f` will be loaded as a Trefunge program, and any file that does not fit either will be loaded as a
-Befunge program. To override the default, use `--dim=VALUE`. This flag may also appear in any order alongside the 
-permission flags, but it must also appear after the Funge98 file:  
+Befunge program. The file extension is not considered. To override the default, use `--dim=VALUE`. This flag may also 
+appear in any order alongside the permission flags, but it must also appear after the Funge98 file:  
 ```
 funge98 example.b98 -r --dim=3
 ```
