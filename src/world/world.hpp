@@ -135,10 +135,12 @@ class FungeWorld {
         void passEnvar(const std::u32string& envar);
 
         /// Starts the program.
-        void start();
+        void run();
 
-        /// Executes the instruction under the next pointer in the queue and advances the pointer.
-        void tick();
+        /// Executes the instruction under the specified pointer and advances the pointer.
+        ///
+        /// @param ip  the pointer to receive the tick
+        void tick(InstructionPointer& ip);
 
         /// Checks if an instruction pointer is within the bounds of the world, or if out of bounds, it checks for a
         /// travel direction towards the bounds of the world.

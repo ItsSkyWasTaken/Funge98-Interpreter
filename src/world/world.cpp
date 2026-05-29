@@ -170,8 +170,21 @@ void InstructionSet::load(FungeWorld& w) {
 
     commands[U'.'] = [](const InstructionPointer& ip) {
         const int32_t n = ip.getStack().pop();
-        std::cout << n << " ";
-        pointerPosition += n == 0 ? 2 : static_cast<int>(log10(abs(n))) + 2 + (n < 0 ? 1 : 0);
+        std::cout << n;
+
+        switch(ansiFlag) {
+            case 2:
+                ansiParameter *= 10 * (n == 0 ? 1 : static_cast<int>(log10(abs(n))) + 1);
+                ansiParameter += n;
+                break;
+            case 1:
+                ansiFlag = 0;
+                // intentional fallthrough
+            default:
+                pointerPosition += n == 0 ? 2 : static_cast<int>(log10(abs(n))) + 2 + (n < 0 ? 1 : 0);
+                std::cout << " ";
+        }
+
         return true;
     };
 
@@ -524,7 +537,8 @@ void InstructionSet::load(FungeWorld& w) {
     };
 
     commands[U'x'] = [](InstructionPointer& ip) {
-        ip.setDelta(ip.getStack().popVector(ip.getDelta().dimensions));
+        const Vector v = ip.getStack().popVector(ip.getDelta().dimensions);
+        ip.setDelta(v);
         return true;
     };
 
@@ -709,9 +723,6 @@ void InstructionSet::load(FungeWorld& w) {
 
     commands[U'~'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
-        // char c;
-        // std::cin.get(c);
-        // ip.getStack().push(static_cast<char32_t>(c));
 
         const int first = std::cin.get();
 
@@ -766,7 +777,7 @@ bool InstructionSet::supports(const char32_t command) {
 }
 
 bool InstructionSet::execute(InstructionPointer& ip) {
-    if(!commands[world -> get(ip.getLocation())](ip)) {
+    if(!commands[world->get(ip.getLocation())](ip)) {
         ip.setDelta(ip.getDelta() * -1);
         return false;
     }
@@ -1005,7 +1016,7 @@ bool FungeWorld::boundsCheck(const InstructionPointer& ip) const {
     return true;
 }
 
-void FungeWorld::start() {
+void FungeWorld::run() {
     pointers.push(new InstructionPointer(dimensions));
     InstructionPointer& ip = *pointers.front();
 
@@ -1015,13 +1026,18 @@ void FungeWorld::start() {
         c = static_cast<uint32_t>(get(ip.getLocation()));
     }
 
-    tick();
+    while(!pointers.empty()) {
+        InstructionPointer& ip = *pointers.front();
+        pointers.pop();
+        tick(ip);
+    }
+
+    quit(0);
 }
 
-void FungeWorld::tick() {
-    InstructionPointer& ip = *pointers.front();
-    pointers.pop();
 
+
+void FungeWorld::tick(InstructionPointer& ip) {
     if(ip.getPointerState() == PointerState::STRING) {
         if(get(ip.getLocation()) == U'"') {
             ip.setPointerState(PointerState::NORMAL);
@@ -1076,15 +1092,6 @@ void FungeWorld::tick() {
         } else {
             pointers.push(&ip);
         }
-    }
-
-    if(!pointers.empty()) {
-        // ReSharper disable once CppDFAInfiniteRecursion
-        // If there is infinite recursion then there is an error in the B98 file. Under normal circumstances the IP will
-        // hit a '@' or escape the boundaries.
-        tick();
-    } else {
-        quit(0);
     }
 }
 

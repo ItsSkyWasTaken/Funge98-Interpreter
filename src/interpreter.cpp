@@ -199,5 +199,5 @@ int main(const int argc, char** argv) {
     std::cout << " Starting!" << std::endl
               << "================================================================" << std::endl << std::endl;
 
-    w.start();
+    w.run();
 }
