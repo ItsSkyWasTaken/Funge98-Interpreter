@@ -44,7 +44,7 @@ void InstructionSet::load(FungeWorld& w) {
     commands[U'%'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
-        stack.push(a % b);
+        stack.push(b == 0 ? 0 : a % b);
         return true;
     };
 
@@ -191,7 +191,7 @@ void InstructionSet::load(FungeWorld& w) {
     commands[U'/'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
-        stack.push(a / b);
+        stack.push(b == 0 ? 0 : a / b);
         return true;
     };
 
