@@ -19,6 +19,7 @@ int InstructionSet::ansiParameter = 0;
 
 void InstructionSet::load(FungeWorld& w) {
     world = &w;
+    commands.reserve(91);
 
     commands[U'!'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();

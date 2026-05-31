@@ -115,27 +115,28 @@ std::u32string fromUtf8(const std::string& s) {
 }
 
 int main(const int argc, char** argv) {
+    std::ios_base::sync_with_stdio(false);
     if(argc == 1 || std::string(argv[1]) == "--help") {
-        std::cout << std::endl << "Hello! Thank you for checking out my lil' project. :)" << std::endl
-                  << "This is a Funge98 interpreter. Funge98 is an esoteric programming language. If you are not already" << std::endl
-                  << "familiar with Funge98, you can learn about it on my Github page..." << std::endl
-                  << "\033[93mhttps://github.com/ItsSkyWasTaken/Funge98-Interpreter\033[0m" << std::endl << std::endl
-                  << "or many other sources like this wiki:" << std::endl
-                  << "\033[93mhttps://esolangs.org/wiki/Funge-98\033[0m" << std::endl << std::endl
-                  << "To run a Funge98 file, simply pass the file as an argument when running this command:" << std::endl
-                  << "\033[96m" << argv[0] << " example.b98" << "\033[0m" << std::endl << std::endl
-                  << "This interpreter automatically detects if the file is a Unefunge, Befunge, or Trefunge program based" << std::endl
-                  << "on the dimensions in the file. To override this, you can specify dimensions with \033[96m--dim=VALUE\033[0m:" << std::endl
-                  << "\033[96m" << argv[0] << " example.b98 --dim=3" << "\033[0m" << std::endl << std::endl
-                  << "The input (i), output (o), and execute (=) commands are disabled by default. If your Funge98 file" << std::endl
-                  << "needs them, you must enable them with \033[96m-r\033[0m, \033[96m-w\033[0m, and \033[96m-e\033[0m, respectively. For example:" << std::endl
-                  << "\033[96m" << argv[0] << " example.b98 -r -w" << "\033[0m" << std::endl << std::endl
-                  << "\033[91m" << "These permissions allow the Funge98 file to potentially make changes to your device. Make sure you " << std::endl
-                  << "trust the file before enabling these!" << "\033[0m" << std::endl
-                  << "Developers should use \033[96m1y\033[0m in their programs to check if these are enabled and respond with alternatives" << std::endl
-                  << "if they are not." << std::endl << std::endl
-                  << "To pass extra arguments into the Funge98 program, simply list them after the \033[96m--args\033[0m flag:" << std::endl
-                  << "\033[96m" << argv[0] << " example.b98 -r -w --args Example \"Example with multiple words\"" << "\033[0m" << std::endl << std::endl;
+        std::cout << std::endl << "Hello! Thank you for checking out my lil' project. :)\n"
+                  << "This is a Funge98 interpreter. Funge98 is an esoteric programming language. If you are not already\n"
+                  << "familiar with Funge98, you can learn about it on my Github page...\n"
+                  << "\033[93mhttps://github.com/ItsSkyWasTaken/Funge98-Interpreter\033[0m\n\n"
+                  << "or many other sources like this wiki:\n"
+                  << "\033[93mhttps://esolangs.org/wiki/Funge-98\033[0m\n\n"
+                  << "To run a Funge98 file, simply pass the file as an argument when running this command:\n"
+                  << "\033[96m" << argv[0] << " example.b98\033[0m\n\n"
+                  << "This interpreter automatically detects if the file is a Unefunge, Befunge, or Trefunge program based\n"
+                  << "on the dimensions in the file. To override this, you can specify dimensions with \033[96m--dim=VALUE\033[0m:\n"
+                  << "\033[96m" << argv[0] << " example.b98 --dim=3\033[0m\n\n"
+                  << "The input (i), output (o), and execute (=) commands are disabled by default. If your Funge98 file\n"
+                  << "needs them, you must enable them with \033[96m-r\033[0m, \033[96m-w\033[0m, and \033[96m-e\033[0m, respectively. For example:\n"
+                  << "\033[96m" << argv[0] << " example.b98 -r -w\033[0m\n\n"
+                  << "\033[91m" << "These permissions allow the Funge98 file to potentially make changes to your device. Make sure you\n"
+                  << "trust the file before enabling these!\033[0m\n"
+                  << "Developers should use \033[96m1y\033[0m in their programs to check if these are enabled and respond with alternatives\n"
+                  << "if they are not.\n\n"
+                  << "To pass extra arguments into the Funge98 program, simply list them after the \033[96m--args\033[0m flag:\n"
+                  << "\033[96m" << argv[0] << " example.b98 -r -w --args Example \"Example with multiple words\"\033[0m\n\n";
         return 0;
     }
 
@@ -165,7 +166,7 @@ int main(const int argc, char** argv) {
         }
     }
 
-    std::cout << std::endl << "\033[0m================================================================" << std::endl
+    std::cout << "\n\033[0m================================================================\n"
               << " Loading Funge world..." << std::endl;
 
     if(std::ifstream file(argv[1]); file.is_open()) {
@@ -175,8 +176,8 @@ int main(const int argc, char** argv) {
             world = FungeWorld::fromFile(file);
         }
     } else {
-        std::cout << " [ERROR] Could not read file: " << argv[1] << std::endl
-                  << "================================================================" << std::endl << std::endl;
+        std::cout << " [ERROR] Could not read file: " << argv[1] << "\n"
+                  << "================================================================\n\n";
         return 2;
     }
 
@@ -197,7 +198,7 @@ int main(const int argc, char** argv) {
     setupConsole();
 
     std::cout << " Starting!" << std::endl
-              << "================================================================" << std::endl << std::endl;
+              << "================================================================\n\n";
 
     w.run();
 }
