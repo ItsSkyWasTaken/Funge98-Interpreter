@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 
+#include "world/instructions.hpp"
 #include "world/world.hpp"
 
 #ifdef _WIN32
