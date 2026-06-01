@@ -17,34 +17,43 @@ void InstructionSet::load(FungeWorld& w) {
     world = &w;
     commands.reserve(91);
 
+    // Perform boolean inversion on the TOS.
     commands[U'!'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         stack.push(!stack.pop());
         return true;
     };
 
+    // Toggle String Mode.
     commands[U'"'] = [](InstructionPointer& ip) {
         ip.setPointerState(PointerState::STRING);
         return true;
     };
 
+    // Skip next Funge space cell.
     commands[U'#'] = [](InstructionPointer& ip) {
         ip.advance(1);
         return true;
     };
 
+    // Pop top of the stack.
     commands[U'$'] = [](const InstructionPointer& ip) {
         ip.getStack().pop();
         return true;
     };
 
+    // Perform modulus operation on top two elements.
     commands[U'%'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
+
+        // Return 0 if divisor is 0, instead of erroring.
         stack.push(b == 0 ? 0 : a % b);
+
         return true;
     };
 
+    // Read integer from input stream.
     commands[U'&'] = [](const InstructionPointer& ip) {
         std::string input;
         int32_t n;
@@ -52,10 +61,15 @@ void InstructionSet::load(FungeWorld& w) {
         getline(std::cin, input);
         std::istringstream iss(input);
 
+        // Attempt to grab integer from input. If it fails...
         while(!(iss >> n)) {
+            // Flush input stream.
             std::cin.clear();
+
+            // Delete line in terminal and reset cursor.
             std::cout << "\033[1F\033[" << pointerPosition << "C\033[0J";
 
+            // Try again.
             getline(std::cin, input);
             iss = std::istringstream(input);
         }
@@ -64,12 +78,14 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Push the character at the IP's next location.
     commands[U'\''] = [](InstructionPointer& ip) {
         ip.advance(1);
         ip.getStack().push(world->get(ip.getLocation()));
         return true;
     };
 
+    // Perform multiplication on the top two elements of the stack.
     commands[U'*'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
 
@@ -81,6 +97,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Perform addition on the top two elements of the stack.
     commands[U'+'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
 
@@ -92,16 +109,21 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Print a Unicode representation of the top value of the stack.
     commands[U','] = [](const InstructionPointer& ip) {
         const char32_t c = ip.getStack().popChar();
         const std::u32string s(1, c);
         std::cout << toUtf8(s);
 
+        // Check ANSI status, to determine how to update the cursor.
         switch(ansiFlag) {
+            // If an ANSI code is active:
             case 2:
+                // These codepoints end an ANSI code.
                 if(c >= 64 && c < 127) {
                     ansiFlag = 0;
 
+                    // Update cursor position according to which ANSI code was used.
                     switch(c) {
                         case U'C':
                             pointerPosition += ansiParameter;
@@ -117,16 +139,20 @@ void InstructionSet::load(FungeWorld& w) {
                             pointerPosition = ansiParameter - 1;
                             break;
                         default:
-                            // ignore
+                            // Nothing special; do nothing.
                             break;
                     }
 
                     ansiParameter = 0;
+
+                // These codepoints are digits, which are parameters; update parameter tracker accordingly.
                 } else if(c >= 48 && c < 58) {
                     ansiParameter *= 10;
                     ansiParameter += static_cast<int>(c - '0');
                 }
                 break;
+
+            // If an escape character was passed, check for the '[' that's supposed to come next.
             case 1:
                 if(c == U'[') {
                     ansiFlag = 2;
@@ -134,18 +160,30 @@ void InstructionSet::load(FungeWorld& w) {
                 }
 
                 ansiFlag = 0;
+                // Intentional fallthrough
+
+            // Update cursor position accordingly; check for newlines and other special characters.
             default:
+                // Newlines.
                 if(c > 9 && c < 13) {
                     pointerPosition = 0;
+
+                // Backspace.
                 } else if(c == 8) {
                     if(pointerPosition > 0) {
                         pointerPosition -= 1;
                     }
+
+                // Tab.
                 } else if(c == 9) {
                     const int space = 8 - pointerPosition % 8;
                     pointerPosition += space == 0 ? 8 : space;
+
+                // Escape character.
                 } else if(c == 27) {
                     ansiFlag = 1;
+
+                // All printable characters.
                 } else if(c >= 32 && c != 127) {
                     pointerPosition += 1;
                 }
@@ -154,6 +192,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Perform subtraction on the top two values of the stack.
     commands[U'-'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
 
@@ -165,18 +204,26 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Print the top integer of the stack, followed by a space.
     commands[U'.'] = [](const InstructionPointer& ip) {
         const int32_t n = ip.getStack().pop();
         std::cout << n;
 
+        // Check for ANSI status.
         switch(ansiFlag) {
+            // If an ANSI code is active, update parameter for tracking the cursor. Do NOT print a space (it will mess
+            // up the ANSI code).
             case 2:
                 ansiParameter *= 10 * (n == 0 ? 1 : static_cast<int>(log10(abs(n))) + 1);
                 ansiParameter += n;
                 break;
+
+            // If the escape character was passed but the '[' was not, clear ANSI flag.
             case 1:
                 ansiFlag = 0;
-                // intentional fallthrough
+                // Intentional fallthrough.
+
+            // Count digits in number to track cursor, and DO print the space.
             default:
                 pointerPosition += n == 0 ? 2 : static_cast<int>(log10(abs(n))) + 2 + (n < 0 ? 1 : 0);
                 std::cout << " ";
@@ -185,74 +232,92 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Perform division on the top two elements of the stack.
     commands[U'/'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
+
+        // If the divisor is 0, return 0 instead of erroring.
         stack.push(b == 0 ? 0 : a / b);
+
         return true;
     };
 
+    // Push 0.
     commands[U'0'] = [](const InstructionPointer& ip) {
         ip.getStack().push(0);
         return true;
     };
 
+    // Push 1.
     commands[U'1'] = [](const InstructionPointer& ip) {
         ip.getStack().push(1);
         return true;
     };
 
+    // Push 2.
     commands[U'2'] = [](const InstructionPointer& ip) {
         ip.getStack().push(2);
         return true;
     };
 
+    // Push 3.
     commands[U'3'] = [](const InstructionPointer& ip) {
         ip.getStack().push(3);
         return true;
     };
 
+    // Push 4.
     commands[U'4'] = [](const InstructionPointer& ip) {
         ip.getStack().push(4);
         return true;
     };
 
+    // Push 5.
     commands[U'5'] = [](const InstructionPointer& ip) {
         ip.getStack().push(5);
         return true;
     };
 
+    // Push 6.
     commands[U'6'] = [](const InstructionPointer& ip) {
         ip.getStack().push(6);
         return true;
     };
 
+    // Push 7.
     commands[U'7'] = [](const InstructionPointer& ip) {
         ip.getStack().push(7);
         return true;
     };
 
+    // Push 8.
     commands[U'8'] = [](const InstructionPointer& ip) {
         ip.getStack().push(8);
         return true;
     };
 
+    // Push 9.
     commands[U'9'] = [](const InstructionPointer& ip) {
         ip.getStack().push(9);
         return true;
     };
 
+    // Duplicate top value of the stack.
     commands[U':'] = [](const InstructionPointer& ip) {
         ip.getStack().duplicate();
         return true;
     };
 
+    // Go west.
     commands[U'<'] = [](InstructionPointer& ip) {
         ip.setDelta(-1, 0, 0);
         return true;
     };
 
+    // Execute system command.
     commands[U'='] = [](const InstructionPointer& ip) {
+        // Permission check.
         if(!world->canExecute()) {
             return false;
         }
@@ -264,21 +329,25 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Go east.
     commands[U'>'] = [](InstructionPointer& ip) {
         ip.setDelta(1, 0, 0);
         return true;
     };
 
+    // Go in a random cardinal direction.
     commands[U'?'] = [](InstructionPointer& ip) {
         ip.setDelta(Vector::random(world->dimensions));
         return true;
     };
 
+    // Halt instruction pointer.
     commands[U'@'] = [](InstructionPointer& ip) {
         ip.setPointerState(PointerState::EXITING);
         return true;
     };
 
+    // Turn left.
     commands[U'['] = [](InstructionPointer& ip) {
         const Vector& delta = ip.getDelta();
         if(delta.dimensions == 1) {
@@ -289,6 +358,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Swap top two elements.
     commands[U'\\'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
@@ -297,6 +367,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Turn right.
     commands[U']'] = [](InstructionPointer& ip) {
         const Vector& delta = ip.getDelta();
         if(delta.dimensions == 1) {
@@ -307,6 +378,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Go north.
     commands[U'^'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
             return false;
@@ -316,11 +388,13 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Go west if TOS is true, go east if false.
     commands[U'_'] = [](InstructionPointer& ip) {
         ip.setDelta(ip.getStack().pop() ? -1 : 1, 0, 0);
         return true;
     };
 
+    // Greater-than operation on top two elements.
     commands[U'`'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t b = stack.pop(), a = stack.pop();
@@ -328,42 +402,50 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Push 10.
     commands[U'a'] = [](const InstructionPointer& ip) {
         ip.getStack().push(10);
         return true;
     };
 
+    // Push 11.
     commands[U'b'] = [](const InstructionPointer& ip) {
         ip.getStack().push(11);
         return true;
     };
 
+    // Push 12.
     commands[U'c'] = [](const InstructionPointer& ip) {
         ip.getStack().push(12);
         return true;
     };
 
+    // Push 13.
     commands[U'd'] = [](const InstructionPointer& ip) {
         ip.getStack().push(13);
         return true;
     };
 
+    // Push 14.
     commands[U'e'] = [](const InstructionPointer& ip) {
         ip.getStack().push(14);
         return true;
     };
 
+    // Push 15.
     commands[U'f'] = [](const InstructionPointer& ip) {
         ip.getStack().push(15);
         return true;
     };
 
+    // Get value at location in Funge world.
     commands[U'g'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         stack.push(world->get(ip.getOffset() + stack.popVector(world->dimensions)));
         return true;
     };
 
+    // Go high.
     commands[U'h'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions != 3) {
             return false;
@@ -378,19 +460,23 @@ void InstructionSet::load(FungeWorld& w) {
         return false;
     };
 
+    // Jump a number of cells.
     commands[U'j'] = [](InstructionPointer& ip) {
         ip.advance(ip.getStack().pop());
         return true;
     };
 
+    // Iterate next instruction.
     commands[U'k'] = [](InstructionPointer& ip) {
         const Vector old = ip.getLocation();
         const int32_t n = ip.getStack().pop();
 
+        // Negative parameters result in an error.
         if(n < 0) {
             return false;
         }
 
+        // Find next instruction.
         ip.advance(1);
         auto c = static_cast<uint32_t>(world->get(ip.getLocation()));
 
@@ -437,10 +523,12 @@ void InstructionSet::load(FungeWorld& w) {
             return true;
         }
 
+        // TODO: implement wrap-around
         ip.setLocation(old);
         return false;
     };
 
+    // Go low.
     commands[U'l'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions != 3) {
             return false;
@@ -450,6 +538,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // High-low conditional.
     commands[U'm'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions != 3) {
             return false;
@@ -459,6 +548,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Clear stack.
     commands[U'n'] = [](const InstructionPointer& ip) {
         ip.getStack().clear();
         return true;
@@ -469,6 +559,7 @@ void InstructionSet::load(FungeWorld& w) {
         return false;
     };
 
+    // Put value of TOS at a location in the Funge space.
     commands[U'p'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const Vector& v = stack.popVector(world->dimensions);
@@ -477,21 +568,26 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Quit program.
     commands[U'q'] = [](const InstructionPointer& ip) {
         quit(ip.getStack().pop());
         return true;
     };
 
+    // Reflect pointer.
     commands[U'r'] = [](InstructionPointer& ip) {
         ip.setDelta(ip.getDelta() * -1);
         return true;
     };
 
-    commands[U's'] = [](const InstructionPointer& ip) {
-        world->put(ip.getLocation() + ip.getDelta(), ip.getStack().popChar());
+    // Store character.
+    commands[U's'] = [](InstructionPointer& ip) {
+        ip.advance(1);
+        world->put(ip.getLocation(), ip.getStack().popChar());
         return true;
     };
 
+    // Split pointer (concurrent Funge).
     commands[U't'] = [](const InstructionPointer& ip) {
         InstructionPointer* ip2 = ip.split();
         ip2->advance(1);
@@ -499,6 +595,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Access stack under stack.
     commands[U'u'] = [](const InstructionPointer& ip) {
         if(ip.getStack().size() < 2) {
             return false;
@@ -508,6 +605,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Go south.
     commands[U'v'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
             return false;
@@ -517,6 +615,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Compare and turn.
     commands[U'w'] = [](InstructionPointer& ip) {
         const Vector& delta = ip.getDelta();
         if(delta.dimensions == 1) {
@@ -533,19 +632,21 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Set delta.
     commands[U'x'] = [](InstructionPointer& ip) {
         const Vector v = ip.getStack().popVector(ip.getDelta().dimensions);
         ip.setDelta(v);
         return true;
     };
 
+    // Get SysInfo.
     commands[U'y'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
         const int32_t c = stack.pop();
         const std::vector<int32_t> sizes = ip.stackSizes();
 
         switch(c) {
-            // If out of range, push everything
+            // If out of range, push everything.
             default:
 
             // Case 20: push environment variables onto the stack as null-terminated strings (unordered); the end is
@@ -556,6 +657,7 @@ void InstructionSet::load(FungeWorld& w) {
                     stack.push(envar);
                 }
 
+                // Only break if the value was specified; else, fall through and push everything else.
                 if(c == 20) break;
             }
 
@@ -691,15 +793,18 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // No-op.
     commands[U'z'] = [](InstructionPointer& _) {
         return true;
     };
 
+    // Begin scope.
     commands[U'{'] = [](InstructionPointer& ip) {
         ip.startBlock();
         return true;
     };
 
+    // North-south conditional.
     commands[U'|'] = [](InstructionPointer& ip) {
         if(const Vector& delta = ip.getDelta(); delta.dimensions == 1) {
             return false;
@@ -709,6 +814,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // End scope.
     commands[U'}'] = [](InstructionPointer& ip) {
         if(ip.getStack().size() < 2) {
             return false;
@@ -718,6 +824,7 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
+    // Get character from input stream.
     commands[U'~'] = [](const InstructionPointer& ip) {
         Stack& stack = ip.getStack();
 

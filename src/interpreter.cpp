@@ -10,28 +10,25 @@
     extern char** _environ;
     #define environ _environ
     UINT originalInCP, originalOutCP;
+
+    void setupConsole() {
+        originalInCP = GetConsoleCP();
+        originalOutCP = GetConsoleOutputCP();
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+    }
+
+    void restoreConsole() {
+        SetConsoleCP(originalInCP);
+        SetConsoleOutputCP(originalOutCP);
+    }
+
 #elifdef __APPLE__
     #include <crt_externs.h>
     #define environ (*_NSGetEnviron())
 #else
     extern char** environ;
 #endif
-
-void setupConsole() {
-    #ifdef _WIN32
-        originalInCP = GetConsoleCP();
-        originalOutCP = GetConsoleOutputCP();
-        SetConsoleCP(CP_UTF8);
-        SetConsoleOutputCP(CP_UTF8);
-    #endif
-}
-
-void restoreConsole() {
-    #ifdef _WIN32
-        SetConsoleCP(originalInCP);
-        SetConsoleOutputCP(originalOutCP);
-    #endif
-}
 
 FungeWorld* world;
 
@@ -42,7 +39,10 @@ void quit(const int code) {
               << " Program has finished running." << std::endl << " Exit code: " << code << std::endl
               << "================================================================" << std::endl;
 
-    restoreConsole();
+    #ifdef _WIN32
+        restoreConsole();
+    #endif
+
     std::exit(code);
 }
 
@@ -196,7 +196,10 @@ int main(const int argc, char** argv) {
     }
 
     InstructionSet::load(w);
-    setupConsole();
+
+    #ifdef _WIN32
+        setupConsole();
+    #endif
 
     std::cout << " Starting!" << std::endl
               << "================================================================\n\n";

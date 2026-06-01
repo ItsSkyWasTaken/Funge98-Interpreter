@@ -17,4 +17,5 @@ add_executable(funge98 src/interpreter.cpp
         src/world/world.hpp
         src/world/world.cpp
         src/world/instructions.hpp
-        src/world/instructions.cpp)
+        src/world/instructions.cpp
+)

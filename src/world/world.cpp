@@ -240,13 +240,6 @@ bool FungeWorld::boundsCheck(const InstructionPointer& ip) const {
 
 void FungeWorld::run() {
     pointers.push(new InstructionPointer(dimensions));
-    InstructionPointer& ip = *pointers.front();
-
-    auto c = static_cast<uint32_t>(get(ip.getLocation()));
-    while(c > 126 || c < 32) {
-        ip.advance(1);
-        c = static_cast<uint32_t>(get(ip.getLocation()));
-    }
 
     while(!pointers.empty()) {
         InstructionPointer& ip = *pointers.front();

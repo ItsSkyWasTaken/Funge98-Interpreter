@@ -110,8 +110,7 @@ class FungeWorld {
         friend class InstructionSet;
         friend void quit(int code);
 
-        // TODO: add more memory-efficient means of storing far away data;
-        // ideally we do not need to create 2 billion 2D vectors of 4-byte characters to store some faraway data.
+        // TODO: replace current storage with chunk system
 
         /// The grid of data in the Funge world.
         std::vector<std::vector<std::u32string>> data;
