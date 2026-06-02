@@ -1,5 +1,6 @@
 #include "vector.hpp"
 
+#include <cassert>
 #include <random>
 
 Vector Vector::origin(const int32_t dim) {
@@ -9,6 +10,7 @@ Vector Vector::origin(const int32_t dim) {
         case 2:
             return {0, 0};
         default:
+            assert(dim == 3);
             return {0, 0, 0};
     }
 }
@@ -20,6 +22,7 @@ Vector Vector::east(const int32_t dim) {
         case 2:
             return {1, 0};
         default:
+            assert(dim == 3);
             return {1, 0, 0};
     }
 }
@@ -40,6 +43,7 @@ Vector Vector::random(const int32_t dim) {
         case 2:
             return {coords[0], coords[1]};
         default:
+            assert(dim == 3);
             return {coords[0], coords[1], coords[2]};
     }
 }
@@ -114,6 +118,10 @@ Vector& Vector::operator=(const Vector& v) {
     return *this;
 }
 
+bool Vector::operator==(const Vector& v) const {
+    return x == v.x && y == v.y && z == v.z && dimensions == v.dimensions;
+}
+
 int32_t Vector::getX() const {
     return x;
 }
@@ -124,4 +132,13 @@ int32_t Vector::getY() const {
 
 int32_t Vector::getZ() const {
     return z;
+}
+
+std::size_t std::hash<Vector>::operator()(const Vector& v) const noexcept {
+    const std::size_t h1 = std::hash<int>{}(v.x);
+    const std::size_t h2 = std::hash<int>{}(v.y);
+    const std::size_t h3 = std::hash<int>{}(v.z);
+    const std::size_t h4 = std::hash<int>{}(v.dimensions);
+
+    return h1 ^ h2 << 1 ^ h3 << 2 ^ h4 << 3;
 }

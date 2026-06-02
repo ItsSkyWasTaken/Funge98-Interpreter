@@ -170,7 +170,8 @@ int main(const int argc, char** argv) {
     std::cout << "\n\033[0m================================================================\n"
               << " Loading Funge world..." << std::endl;
 
-    if(std::ifstream file(argv[1]); file.is_open()) {
+    std::ifstream file(argv[1]);
+    if(file.is_open()) {
         if(dim > 0 && dim < 4) {
             world = FungeWorld::fromFile(file, static_cast<int8_t>(dim));
         } else {
@@ -183,6 +184,7 @@ int main(const int argc, char** argv) {
     }
 
     FungeWorld& w = *world;
+    file.close();
 
     w.setReadEnabled(read);
     w.setWriteEnabled(write);

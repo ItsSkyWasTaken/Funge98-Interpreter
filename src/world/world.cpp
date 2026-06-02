@@ -1,5 +1,6 @@
 #include "world.hpp"
 
+#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -7,119 +8,253 @@
 
 #include "instructions.hpp"
 
+/// Grabs a line from a UTF-32 encoded string, taking into account all 3 possible line delimiters.
+///
+/// @param stream  the string stream to read from
+/// @param s       the string to assign the line to
+///
+/// @return a boolean determining if there was a line to read
+static bool getLine(std::basic_stringstream<char32_t>& stream, std::u32string& s) {
+    s.clear();
+    char32_t c;
+
+    if(!stream.get(c)) {
+        return false;
+    }
+
+    while(true) {
+        if (c == U'\n') {
+            return true;
+        }
+
+        if (c == U'\r') {
+            if (stream.peek() == U'\n') {
+                stream.get();
+            }
+            return true;
+        }
+
+        s.push_back(c);
+
+        if(!stream.get(c)) {
+            return true;
+        }
+    }
+}
+
 FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
-    std::vector<std::vector<std::u32string>> data;
-    data.emplace_back();
+    std::vector<std::u32string> planes;
+    std::string utf8Plane;
+    while(std::getline(file, utf8Plane, '\f')) {
+        planes.push_back(fromUtf8(utf8Plane));
+    }
 
-    size_t maxPlane = 0, maxRow = 0;
-    std::string line;
-    while(std::getline(file, line)) {
-        if(line == "\\f") {
-            if(data.back().size() > maxPlane) {
-                maxPlane = data.back().size();
+    std::unordered_map<Vector, std::u32string> chunks;
+
+    // Trefunge
+    if(planes.size() > 1) {
+        int p = 0, l = 0;
+        int32_t maxX = 0, maxY = 0;
+        for(const auto& plane : planes) {
+            std::basic_stringstream<char32_t> planeStream(plane);
+            std::u32string line;
+
+            while(getLine(planeStream, line)) {
+                if(line == U"\\f") {
+                    maxY = std::max(maxY, l + 1);
+                    l = 0;
+                    p++;
+                    continue;
+                }
+
+                for(size_t i = 0; i < line.length(); i += 16) {
+                    const Vector chunk = {static_cast<int32_t>(i / 16), l / 16, p / 16};
+                    chunks.try_emplace(chunk, 4096, U' ');
+                    chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, 16, line.substr(i, 16));
+                }
+
+                maxX = std::max(maxX, static_cast<int32_t>(line.length()));
+                l++;
             }
 
-            data.emplace_back();
-        } else {
-            data.back().push_back(fromUtf8(line));
+            maxY = std::max(maxY, l + 1);
+            l = 0;
+            p++;
+        }
 
-            if(line.size() > maxRow) {
-                maxRow = line.size();
+        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p + 1));
+    }
+
+    std::u32string& plane = planes[0];
+    std::vector<std::u32string> lines;
+    std::basic_stringstream<char32_t> planeStream(plane);
+    std::u32string lineRead;
+    bool trefunge = false;
+    while(getLine(planeStream, lineRead)) {
+        if(lineRead == U"\\f") {
+            trefunge = true;
+        }
+
+        lines.push_back(lineRead);
+    }
+
+    // Trefunge, but all form feeds are "\f" sequences instead of literal form feed characters
+    if(trefunge) {
+        int p = 0, l = 0;
+        int32_t maxX = 0, maxY = 0;
+
+        for(const auto& line : lines) {
+            if(line == U"\\f") {
+                maxY = std::max(maxY, l + 1);
+                l = 0;
+                p++;
+                continue;
             }
-        }
-    }
 
-    if(data.back().size() > maxPlane) {
-        maxPlane = data.back().size();
-    }
+            for(size_t i = 0; i < line.length(); i += 16) {
+                const Vector chunk = {static_cast<int32_t>(i / 16), l / 16, p / 16};
+                chunks.try_emplace(chunk, 4096, U' ');
+                chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, 16, line.substr(i, 16));
+            }
 
-    file.close();
-
-    if(data.size() == 1) {
-        if(data.back().size() == 1) {
-            return new FungeWorld(data, Vector::origin(1), Vector(static_cast<int32_t>(maxRow - 1)));
+            maxX = std::max(maxX, static_cast<int32_t>(line.length()));
+            l++;
         }
 
-        return new FungeWorld(data, Vector::origin(1), Vector(static_cast<int32_t>(maxRow - 1), static_cast<int32_t>(maxPlane - 1)));
+        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p + 1));
     }
 
-    return new FungeWorld(data, Vector::origin(3), Vector(static_cast<int32_t>(maxRow - 1), static_cast<int32_t>(maxPlane - 1), static_cast<int32_t>(data.size() - 1)));
+    // Befunge
+    if(lines.size() > 1) {
+        int l = 0;
+        int32_t maxX = 0;
+
+        for(const auto& line : lines) {
+            for(size_t i = 0; i < line.length(); i += 64) {
+                const Vector chunk = {static_cast<int32_t>(i / 64), l / 64};
+                chunks.try_emplace(chunk, 4096, U' ');
+                chunks[chunk].replace(l % 64 * 64, 64, line.substr(i, 64));
+            }
+
+            maxX = std::max(maxX, static_cast<int32_t>(line.length()));
+            l++;
+        }
+
+        return new FungeWorld(std::move(chunks), Vector(maxX, l + 1));
+    }
+
+    // Unefunge
+    std::u32string& line = lines[0];
+    for(size_t i = 0; i < line.length(); i += 4096) {
+        const Vector chunk = {static_cast<int32_t>(i / 4096)};
+        std::u32string chunkString = line.substr(i, 4096);
+        chunks.insert_or_assign(chunk, chunkString.append(std::max(0, static_cast<int32_t>(chunkString.length() - 4096)), U' '));
+    }
+
+    return new FungeWorld(std::move(chunks), Vector(line.length()));
 }
 
-FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int8_t dim) {
-    std::vector<std::vector<std::u32string>> data;
+FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
+    std::unordered_map<Vector, std::u32string> chunks;
+    std::vector<std::u32string> planes;
+    std::string planeString;
+    while(std::getline(file, planeString, '\f')) {
+        planes.push_back(fromUtf8(planeString));
+    }
 
+    // Unefunge
     if(dim == 1) {
-        std::string line;
-        std::string result;
-        while(std::getline(file, line)) {
-            result += line;
+        std::u32string program;
+        for(const auto& plane : planes) {
+            std::basic_stringstream<char32_t> stream(plane);
+            std::u32string l;
+            while(getLine(stream, l)) {
+                if(l != U"\\f") {
+                    program.append(l);
+                }
+            }
         }
 
-        data.emplace_back();
-        data.back().push_back(fromUtf8(result));
-        return new FungeWorld(data, Vector::origin(1), Vector(static_cast<int32_t>(result.size() - 1)));
+        for(size_t i = 0; i < program.length(); i += 4096) {
+            const Vector chunk = {static_cast<int32_t>(i / 4096)};
+            std::u32string chunkString = program.substr(i, 4096);
+            chunks.insert_or_assign(chunk, chunkString.append(std::max(0, static_cast<int32_t>(chunkString.length() - 4096)), U' '));
+        }
+
+        return new FungeWorld(std::move(chunks), Vector(program.length()));
     }
 
+    // Befunge
     if(dim == 2) {
-        size_t maxRow = 0;
-        data.emplace_back();
-        std::string line;
-        while(std::getline(file, line)) {
-            data.back().push_back(fromUtf8(line));
-
-            if(line.size() > maxRow) {
-                maxRow = line.size();
+        std::vector<std::u32string> lines;
+        for(const auto& plane : planes) {
+            std::basic_stringstream<char32_t> stream(plane);
+            std::u32string l;
+            while(getLine(stream, l)) {
+                if(l != U"\\f") {
+                    lines.push_back(l);
+                }
             }
         }
 
-        return new FungeWorld(data, Vector::origin(2), Vector(static_cast<int32_t>(maxRow - 1), static_cast<int32_t>(data.back().size() - 1)));
-    }
+        int l = 0;
+        int32_t maxX = 0;
 
-    data.emplace_back();
-    std::string line;
-    size_t maxPlane = 0, maxRow = 0;
-    while(std::getline(file, line)) {
-        if(line == "\\f") {
-            if(data.back().size() > maxPlane) {
-                maxPlane = data.back().size();
+        for(const auto& line : lines) {
+            for(size_t i = 0; i < line.length(); i += 64) {
+                const Vector chunk = {static_cast<int32_t>(i / 64), l / 64};
+                chunks.try_emplace(chunk, 4096, U' ');
+                chunks[chunk].replace(l % 64 * 64, 64, line.substr(i, 64));
             }
 
-            data.emplace_back();
-        } else {
-            data.back().push_back(fromUtf8(line));
-
-            if(line.size() > maxRow) {
-                maxRow = line.size();
-            }
+            maxX = std::max(maxX, static_cast<int32_t>(line.length()));
+            l++;
         }
+
+        return new FungeWorld(std::move(chunks), Vector(maxX, l + 1));
     }
 
-    if(data.back().size() > maxPlane) {
-        maxPlane = data.back().size();
+    // Trefunge
+    assert(dim == 3);
+    int p = 0, l = 0;
+    int32_t maxX = 0, maxY = 0;
+    for(const auto& plane : planes) {
+        std::basic_stringstream<char32_t> planeStream(plane);
+        std::u32string line;
+
+        while(getLine(planeStream, line)) {
+            if(line == U"\\f") {
+                maxY = std::max(maxY, l + 1);
+                l = 0;
+                p++;
+                continue;
+            }
+
+            for(size_t i = 0; i < line.length(); i += 16) {
+                const Vector chunk = {static_cast<int32_t>(i / 16), l / 16, p / 16};
+                chunks.try_emplace(chunk, 4096, U' ');
+                chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, 16, line.substr(i, 16));
+            }
+
+            maxX = std::max(maxX, static_cast<int32_t>(line.length()));
+            l++;
+        }
+
+        maxY = std::max(maxY, l + 1);
+        l = 0;
+        p++;
     }
 
-    file.close();
-
-    return new FungeWorld(data, Vector::origin(3), Vector(static_cast<int32_t>(maxRow - 1), static_cast<int32_t>(maxPlane - 1), static_cast<int32_t>(data.size() - 1)));
+    return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p + 1));
 }
 
-char32_t FungeWorld::get(const Vector& location) const {
-    if(location.getZ() < zStart || location.getZ() >= static_cast<int32_t>(data.size()) + zStart) {
+char32_t FungeWorld::get(const Vector& location) {
+    if(location.dimensions > dimensions) {
         return U' ';
     }
 
-    const int32_t z = location.getZ() - zStart;
-    if(location.getY() < yStarts[z] || location.getY() >= static_cast<int32_t>(data[z].size()) + yStarts[z]) {
-        return U' ';
-    }
-
-    const int32_t y = location.getY() - yStarts[z];
-    if(location.getX() < xStarts[z][y] || location.getX() >= static_cast<int32_t>(data[z][y].size()) + xStarts[z][y]) {
-        return U' ';
-    }
-
-    return data[z][y][location.getX() - xStarts[z][y]];
+    const auto [chunk, offset] = getSublocation(location);
+    return chunk[offset];
 }
 
 void FungeWorld::put(const Vector& location, const char32_t value) {
@@ -127,46 +262,36 @@ void FungeWorld::put(const Vector& location, const char32_t value) {
         return;
     }
 
-    if(location.getZ() < zStart) {
-        data.insert(data.begin(), zStart - location.getZ(), std::vector<std::u32string>());
-        yStarts.insert(yStarts.begin(), zStart - location.getZ(), 0);
-        xStarts.insert(xStarts.begin(), zStart - location.getZ(), std::vector(1, 0));
-        zStart = location.getZ();
-        low -= Vector(0, 0, low.getZ() - location.getZ());
-    } else if(location.getZ() >= static_cast<int32_t>(data.size()) + zStart) {
-        data.insert(data.end(), location.getZ() - (static_cast<int32_t>(data.size()) + zStart - 1), std::vector<std::u32string>());
-        yStarts.insert(yStarts.end(), zStart - location.getZ(), 0);
-        xStarts.insert(xStarts.end(), zStart - location.getZ(), std::vector(1, 0));
-        high += Vector(0, 0, location.getZ() - high.getZ());
-    }
+    const auto [chunk, offset] = getSublocation(location);
+    chunk[offset] = value;
+}
 
-    const int32_t z = location.getZ() - zStart;
-    if(location.getY() < yStarts[z]) {
-        data[z].insert(data[z].begin(), yStarts[z] - location.getY(), std::u32string());
-        xStarts[z].insert(xStarts[z].begin(), yStarts[z] - location.getY(), 0);
-        yStarts[z] = location.getY();
+std::pair<std::u32string&, uint16_t> FungeWorld::getSublocation(const Vector& v) {
+    const int32_t x = v.getX(), y = v.getY(), z = v.getZ();
+    const std::pair<Vector, uint32_t> p = [&] {
+        switch(dimensions) {
+            case 1:
+                return std::make_pair(
+                    Vector(x >= 0 ? x / 4096 : (x + 1) / 4096 - 1),
+                    x >= 0 ? x % 4096 : 4096 + x % 4096
+                );
+            case 2:
+                return std::make_pair(
+                    Vector(x >= 0 ? x / 64 : (x + 1) / 64 - 1, y >= 0 ? y / 64 : (y + 1) / 64 - 1),
+                    (y >= 0 ? y % 64 : 64 + y % 64) * 64 + (x >= 0 ? x % 64 : 64 + x % 64)
+                );
+            default:
+                assert(dimensions == 3);
 
-        if(location.getY() < low.getY()) {
-            low -= Vector(0, low.getY() - location.getY(), 0);
+                return std::make_pair(
+                    Vector(x >= 0 ? x / 16 : (x + 1) / 16 - 1, y >= 0 ? y / 16 : (y + 1) / 16 - 1, z >= 0 ? z / 16 : (z + 1) / 16 - 1),
+                    (z >= 0 ? z % 16 : 16 + z % 16) * 256 + (y >= 0 ? y % 16 : 16 + y % 16) * 16 + (x >= 0 ? x % 16 : 16 + x % 16)
+                );
         }
-    } else if(location.getY() >= static_cast<int32_t>(data[z].size()) + yStarts[z]) {
-        data[z].insert(data[z].end(), location.getY() - (static_cast<int32_t>(data[z].size()) + yStarts[z] - 1), std::u32string());
-        xStarts[z].insert(xStarts[z].end(), yStarts[z] - location.getY(), 0);
+    }();
 
-        if(location.getY() > high.getY()) {
-            high += Vector(0, location.getY() - high.getY(), 0);
-        }
-    }
-
-    const int32_t y = location.getY() - yStarts[z];
-    if(location.getX() < xStarts[z][y]) {
-        data[z][y].insert(0, xStarts[z][y] - location.getX(), U' ');
-        xStarts[z][y] = location.getX();
-    } else if(location.getX() >= static_cast<int32_t>(data[z][y].size()) + xStarts[z][y]) {
-        data[z][y].append(location.getX() - (static_cast<int32_t>(data[z][y].size()) + xStarts[z][y] - 1), U' ');
-    }
-
-    data[z][y][location.getX() - xStarts[z][y]] = value;
+    chunks.try_emplace(p.first, 4096, U' ');
+    return { chunks[p.first], p.second };
 }
 
 void FungeWorld::setReadEnabled(const bool enabled) {
@@ -199,15 +324,6 @@ void FungeWorld::passArg(const std::u32string& arg) {
 
 void FungeWorld::passEnvar(const std::u32string& envar) {
     envars.push_back(envar);
-}
-
-FungeWorld::FungeWorld(const std::vector<std::vector<std::u32string>>& data, const Vector& low, const Vector& high):
-        data(data), dimensions(high.dimensions), high(high), low(low), zStart(0), write(false), read(false), execute(false) {
-    for(const auto& datum : data) {
-        yStarts.emplace_back(0);
-        xStarts.emplace_back();
-        xStarts.back().assign(datum.size(), 0);
-    }
 }
 
 bool FungeWorld::boundsCheck(const InstructionPointer& ip) const {
@@ -249,8 +365,6 @@ void FungeWorld::run() {
 
     quit(0);
 }
-
-
 
 void FungeWorld::tick(InstructionPointer& ip) {
     if(ip.getPointerState() == PointerState::STRING) {
@@ -309,6 +423,9 @@ void FungeWorld::tick(InstructionPointer& ip) {
         }
     }
 }
+
+FungeWorld::FungeWorld(std::unordered_map<Vector, std::u32string> chunks, const Vector& high):
+        chunks(std::move(chunks)), dimensions(high.dimensions), low(Vector::origin(high.dimensions)), high(high), write(false), read(false), execute(false) {}
 
 FungeWorld::~FungeWorld() {
     while(!pointers.empty()) {

@@ -2,6 +2,11 @@
 #define FUNGE98_VECTOR_HPP
 
 #include <cstdint>
+#include <functional>
+
+// Forward declarations so the class and hash struct can interact with each other.
+class Vector;
+template<> struct std::hash<Vector>;
 
 /// A @code Vector@endcode represents a set of coordinates. These coordinates may represent a location or a direction
 /// and may be absolute or relative, depending on the context in which they are used.
@@ -118,8 +123,15 @@ class Vector {
         /// @return  a reference to this vector
         Vector& operator=(const Vector& v);
 
+        /// Checks for equality by comparing the coordinates.
+        ///
+        /// @param v  the vector to compare against this vector
+        ///
+        /// @return  \code true\endcode if the coordinates are equal
+        bool operator==(const Vector& v) const;
+
         /// The number of dimensions on this vector.
-        const int32_t dimensions;
+        int32_t dimensions;
 
         /// Gets the X-coordinate of this vector.
         ///
@@ -137,6 +149,8 @@ class Vector {
         [[nodiscard]] int32_t getZ() const;
 
     private:
+        friend struct std::hash<Vector>;
+
         /// The x-coordinate of the vector.
         int32_t x;
 
@@ -145,6 +159,10 @@ class Vector {
 
         /// The z-coordinate of the vector.
         int32_t z;
+};
+
+template<> struct std::hash<Vector> {
+    std::size_t operator()(const Vector& v) const noexcept;
 };
 
 #endif

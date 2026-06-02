@@ -5,6 +5,7 @@
 #include <iosfwd>
 #include <queue>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "pointer.hpp"
@@ -27,7 +28,7 @@ class FungeWorld {
         /// @param dim   the number of dimensions the Funge world should have
         ///
         /// @return  a direct object representation of the loaded Funge world with the specified number of dimensions
-        static FungeWorld* fromFile(std::ifstream& file, int8_t dim);
+        static FungeWorld* fromFile(std::ifstream& file, int dim);
 
         /// Grabs the character at a specified location in the world. Returns a space \code ' '\endcode if there was no
         /// value specified in this location.
@@ -35,7 +36,7 @@ class FungeWorld {
         /// @param location  the location to look at
         ///
         /// @return  the 32-bit character at that location
-        [[nodiscard]] char32_t get(const Vector& location) const;
+        [[nodiscard]] char32_t get(const Vector& location);
 
         /// Sets the data at the specified location to the supplied 32-bit data.
         ///
@@ -108,30 +109,6 @@ class FungeWorld {
 
     private:
         friend class InstructionSet;
-        friend void quit(int code);
-
-        // TODO: replace current storage with chunk system
-
-        /// The grid of data in the Funge world.
-        std::vector<std::vector<std::u32string>> data;
-
-        /// The queue of instruction pointers. Instruction pointers are polled, executed, and re-offered in a circle.
-        std::queue<InstructionPointer*> pointers;
-
-        /// The minimum X-values per row that have any data.
-        std::vector<std::vector<int32_t>> xStarts;
-
-        /// The minimum Y-values per plane that have any data.
-        std::vector<int32_t> yStarts;
-
-        /// The minimum Z-value that has any data.
-        int32_t zStart;
-
-        /// A vector of arguments that were passed in when running this script via the terminal.
-        std::vector<std::u32string> args;
-
-        /// A vector of environment variables on the system.
-        std::vector<std::u32string> envars;
 
         /// The lower bound of the active region, inclusive.
         Vector low;
@@ -151,13 +128,27 @@ class FungeWorld {
         /// is allowed. Attempts to execute commands while this is disabled will result in a pointer reflect instead.
         bool execute;
 
-        /// Private constructor. Instances of \code FungeWorld\endcode should be constructed via the static
-        /// \code fromFile()\endcode methods.
+        /// A map of all loaded chunks in this Funge world. Each chunk has 4096 characters (16kB). 2D chunks are 64×64
+        /// and 3D chunks are 16×16×16.
+        std::unordered_map<Vector, std::u32string> chunks;
+
+        /// Gets the chunk and index associated with the specified coordinates.
         ///
-        /// @param data  the 3D array of 32-bit characters obtained from the supplied file
-        /// @param low   a vector showing the lower bound of the active region
-        /// @param high  a vector showing the upper bound of the active region
-        FungeWorld(const std::vector<std::vector<std::u32string>>& data, const Vector& low, const Vector& high);
+        /// @param v        a set of coordinates to get
+        ///
+        /// @return   the chunk and index associated with the specified coordinates
+        [[nodiscard]] std::pair<std::u32string&, uint16_t> getSublocation(const Vector& v);
+
+        /// The queue of instruction pointers. Instruction pointers are polled, executed, and re-offered in a circle.
+        std::queue<InstructionPointer*> pointers;
+
+        /// A vector of arguments that were passed in when running this script via the terminal.
+        std::vector<std::u32string> args;
+
+        /// A vector of environment variables on the system.
+        std::vector<std::u32string> envars;
+
+        FungeWorld(std::unordered_map<Vector, std::u32string> chunks, const Vector& high);
 };
 
 /// Cleans up and exits the program with an exit code.
