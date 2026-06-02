@@ -156,18 +156,4 @@ class FungeWorld {
 /// @param code  the exit code
 void quit(int code);
 
-/// Converts a string from UTF-32 to UTF-8.
-///
-/// @param s  the UTF-32 string to convert
-///
-/// @return  a UTF-8 representation of the supplied string
-std::string toUtf8(const std::u32string& s);
-
-/// Converts a string from UTF-8 to UTF-32.
-///
-/// @param s  the UTF-8 string to convert
-///
-/// @return  a UTF-32 representation of the supplied string
-std::u32string fromUtf8(const std::string& s);
-
 #endif

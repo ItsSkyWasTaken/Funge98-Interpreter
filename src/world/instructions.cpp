@@ -1,11 +1,15 @@
 #include "instructions.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <ctime>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <ranges>
 #include <sstream>
+
+#include "../strings.hpp"
 
 std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> InstructionSet::commands;
 FungeWorld* InstructionSet::world = nullptr;
@@ -113,7 +117,7 @@ void InstructionSet::load(FungeWorld& w) {
     commands[U','] = [](const InstructionPointer& ip) {
         const char32_t c = ip.getStack().popChar();
         const std::u32string s(1, c);
-        std::cout << toUtf8(s);
+        std::cout << Strings::toUtf8(s);
 
         // Check ANSI status, to determine how to update the cursor.
         switch(ansiFlag) {
@@ -322,9 +326,8 @@ void InstructionSet::load(FungeWorld& w) {
             return false;
         }
 
-        const std::u32string command = ip.getStack().popString();
-        const char* converted = toUtf8(command).c_str();
-        const int32_t status = std::system(converted);
+        const char* command = Strings::toUtf8(ip.getStack().popString()).c_str();
+        const int32_t status = std::system(command);
         ip.getStack().push(status);
         return true;
     };
@@ -455,9 +458,169 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
-    // TODO: implement input command
-    commands[U'i'] = [](InstructionPointer& _) {
-        return false;
+    // Read file into Funge world
+    commands[U'i'] = [](const InstructionPointer& ip) {
+        if(!world->read) {
+            return false;
+        }
+
+        Stack& stack = ip.getStack();
+
+        const std::u32string filename = stack.popString();
+        const int32_t bin = stack.pop();
+        std::ifstream file(Strings::toUtf8(filename), std::ios::binary | std::ios::ate);
+
+        if(!file.is_open()) {
+            stack.push(bin);
+            stack.push(filename);
+            return false;
+        }
+
+        const std::streamsize fileSize = file.tellg();
+        std::string buffer(fileSize, '\0');
+        file.seekg(0, std::ios::beg);
+
+        if(!file.read(buffer.data(), fileSize)) {
+            stack.push(bin);
+            stack.push(filename);
+            return false;
+        }
+
+        file.close();
+        std::u32string contents = Strings::fromUtf8(buffer);
+
+        const Vector start = stack.popVector(world->dimensions);
+        Vector cursor = start;
+
+        // Binary mode (same behavior across all 3 sub-languages)
+        if(bin & 1) {
+            for(const auto& c : contents) {
+                if(c != U' ') {
+                    world->put(cursor, c);
+                }
+
+                cursor += {1, 0, 0};
+            }
+
+            const Vector upperBound = cursor + Vector(1, 0, 0);
+            const Vector size = upperBound - start;
+            world->low = {std::min(world->low.getX(), start.getX()), world->low.getY(), world->low.getZ()};
+            world->high = {std::max(world->high.getX(), upperBound.getX()), world->high.getY(), world->high.getZ()};
+
+            stack.push(start);
+            stack.push(size);
+            return true;
+        }
+
+        // Unefunge
+        if(world->dimensions == 1) {
+            std::basic_stringstream<char32_t> contentStream(contents);
+            std::u32string line;
+            while(Strings::getLine(contentStream, line)) {
+                if(line == U"\\f") {
+                    continue;
+                }
+
+                for(const auto& c : line) {
+                    if(c != U' ') {
+                        world->put(cursor, c);
+                    }
+
+                    cursor += {1};
+                }
+            }
+
+            const Vector upperBound = cursor + Vector(1);
+            const Vector size = upperBound - start;
+            world->low = {std::min(world->low.getX(), start.getX())};
+            world->high = {std::max(world->high.getX(), upperBound.getX())};
+
+            stack.push(start);
+            stack.push(size);
+            return true;
+        }
+
+        // Befunge
+        if(world->dimensions == 2) {
+            std::basic_stringstream<char32_t> contentStream(contents);
+            std::u32string plane;
+            int32_t maxX = 0;
+
+            while(std::getline(contentStream, plane, U'\f')) {
+                std::basic_stringstream<char32_t> planeStream(plane);
+                std::u32string line;
+
+                while(Strings::getLine(planeStream, line)) {
+                    if(line == U"\\f") {
+                        continue;
+                    }
+
+                    for(const auto& c : line) {
+                        if(c != U' ') {
+                            world->put(cursor, c);
+                        }
+
+                        cursor += {1, 0};
+                    }
+
+                    maxX = std::max(maxX, cursor.getX() + 1);
+                    cursor = {start.getX(), cursor.getY() + 1};
+                }
+            }
+
+            const auto upperBound = Vector(maxX, cursor.getY());
+            const Vector size = upperBound - start;
+            world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY())};
+            world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY())};
+
+            stack.push(start);
+            stack.push(size);
+            return true;
+        }
+
+        // Trefunge
+        assert(world->dimensions == 3);
+        std::basic_stringstream<char32_t> contentStream(contents);
+        std::u32string plane;
+        int32_t maxX = 0, maxY = 0;
+
+        while(std::getline(contentStream, plane, U'\f')) {
+            std::basic_stringstream<char32_t> planeStream(plane);
+            std::u32string line;
+
+            while(Strings::getLine(planeStream, line)) {
+                if(line == U"\\f") {
+                    maxX = std::max(maxX, cursor.getX());
+                    maxY = std::max(maxY, cursor.getY());
+                    cursor = {start.getX(), start.getY(), cursor.getZ() + 1};
+                    continue;
+                }
+
+                for(const auto& c : line) {
+                    if(c != U' ') {
+                        world->put(cursor, c);
+                    }
+
+                    cursor += {1, 0, 0};
+                }
+
+                maxX = std::max(maxX, cursor.getX() + 1);
+                cursor = {start.getX(), cursor.getY() + 1, cursor.getZ()};
+            }
+
+            maxX = std::max(maxX, cursor.getX() + 1);
+            maxY = std::max(maxY, cursor.getY());
+            cursor = {start.getX(), start.getY(), cursor.getZ() + 1};
+        }
+
+        const auto upperBound = Vector(maxX, maxY, cursor.getZ());
+        const Vector size = upperBound - start;
+        world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY()), std::min(world->low.getZ(), start.getZ())};
+        world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY()), std::max(world->high.getZ(), upperBound.getZ())};
+
+        stack.push(start);
+        stack.push(size);
+        return true;
     };
 
     // Jump a number of cells.

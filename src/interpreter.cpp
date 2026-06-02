@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 
+#include "strings.hpp"
 #include "world/instructions.hpp"
 #include "world/world.hpp"
 
@@ -46,75 +47,6 @@ void quit(const int code) {
     std::exit(code);
 }
 
-std::string toUtf8(const std::u32string& s) {
-    std::string result;
-    for(const char32_t c : s) {
-        if(c <= 0x7F) {
-            result += static_cast<char>(c);
-        } else if(c <= 0x7FF) {
-            result += static_cast<char>(0xC0 | c >> 6 & 0x1F);
-            result += static_cast<char>(0x80 | c & 0x3F);
-        } else if(c <= 0xFFFF) {
-            result += static_cast<char>(0xE0 | c >> 12 & 0x0F);
-            result += static_cast<char>(0x80 | c >> 6 & 0x3F);
-            result += static_cast<char>(0x80 | c & 0x3F);
-        } else if(c <= 0x10FFFF) {
-            result += static_cast<char>(0xF0 | c >> 18 & 0x07);
-            result += static_cast<char>(0x80 | c >> 12 & 0x3F);
-            result += static_cast<char>(0x80 | c >> 6 & 0x3F);
-            result += static_cast<char>(0x80 | c & 0x3F);
-        }
-    }
-    return result;
-}
-
-std::u32string fromUtf8(const std::string& s) {
-    std::u32string result;
-    size_t i = 0;
-
-    while(i < s.length()) {
-        const auto b = static_cast<uint8_t>(s[i]);
-        char32_t c = 0;
-        size_t bytesToRead = 0;
-
-        if(b <= 0x7F) {
-            c = b;
-            bytesToRead = 0;
-        } else if((b & 0xE0) == 0xC0) {
-            c = b & 0x1F;
-            bytesToRead = 1;
-        } else if((b & 0xF0) == 0xE0) {
-            c = b & 0x0F;
-            bytesToRead = 2;
-        } else if((b & 0xF8) == 0xF0) {
-            c = b & 0x07;
-            bytesToRead = 3;
-        } else {
-            c = 0xFFFD;
-            bytesToRead = 0;
-        }
-
-        if(i + bytesToRead >= s.length()) {
-            result += 0xFFFD;
-            break;
-        }
-
-        for(size_t j = 0; j < bytesToRead; j++) {
-            i++;
-            if (const auto next = static_cast<uint8_t>(s[i]); (next & 0xC0) == 0x80) {
-                c = c << 6 | next & 0x3F;
-            } else {
-                c = 0xFFFD;
-                break;
-            }
-        }
-
-        result += c;
-        i++;
-    }
-    return result;
-}
-
 int main(const int argc, char** argv) {
     std::ios_base::sync_with_stdio(false);
     if(argc == 1 || std::string(argv[1]) == "--help") {
@@ -146,11 +78,11 @@ int main(const int argc, char** argv) {
     bool argFlag = false;
     std::vector<std::u32string> args;
     std::vector<std::u32string> envars;
-    args.push_back(fromUtf8(argv[1]));
+    args.push_back(Strings::fromUtf8(argv[1]));
 
     for(int i = 2; i < argc; i++) {
         if(argFlag) {
-            args.push_back(fromUtf8(argv[i]));
+            args.push_back(Strings::fromUtf8(argv[i]));
             continue;
         }
 
@@ -194,7 +126,7 @@ int main(const int argc, char** argv) {
     }
 
     for(size_t i = 0; environ[i] != nullptr; i++) {
-        envars.push_back(fromUtf8(environ[i]));
+        envars.push_back(Strings::fromUtf8(environ[i]));
     }
 
     InstructionSet::load(w);

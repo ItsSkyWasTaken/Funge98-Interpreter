@@ -7,46 +7,13 @@
 #include <string>
 
 #include "instructions.hpp"
-
-/// Grabs a line from a UTF-32 encoded string, taking into account all 3 possible line delimiters.
-///
-/// @param stream  the string stream to read from
-/// @param s       the string to assign the line to
-///
-/// @return a boolean determining if there was a line to read
-static bool getLine(std::basic_stringstream<char32_t>& stream, std::u32string& s) {
-    s.clear();
-    char32_t c;
-
-    if(!stream.get(c)) {
-        return false;
-    }
-
-    while(true) {
-        if (c == U'\n') {
-            return true;
-        }
-
-        if (c == U'\r') {
-            if (stream.peek() == U'\n') {
-                stream.get();
-            }
-            return true;
-        }
-
-        s.push_back(c);
-
-        if(!stream.get(c)) {
-            return true;
-        }
-    }
-}
+#include "../strings.hpp"
 
 FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
     std::vector<std::u32string> planes;
     std::string utf8Plane;
     while(std::getline(file, utf8Plane, '\f')) {
-        planes.push_back(fromUtf8(utf8Plane));
+        planes.push_back(Strings::fromUtf8(utf8Plane));
     }
 
     std::unordered_map<Vector, std::u32string> chunks;
@@ -59,7 +26,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             std::basic_stringstream<char32_t> planeStream(plane);
             std::u32string line;
 
-            while(getLine(planeStream, line)) {
+            while(Strings::getLine(planeStream, line)) {
                 if(line == U"\\f") {
                     maxY = std::max(maxY, l + 1);
                     l = 0;
@@ -90,7 +57,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
     std::basic_stringstream<char32_t> planeStream(plane);
     std::u32string lineRead;
     bool trefunge = false;
-    while(getLine(planeStream, lineRead)) {
+    while(Strings::getLine(planeStream, lineRead)) {
         if(lineRead == U"\\f") {
             trefunge = true;
         }
@@ -159,7 +126,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
     std::vector<std::u32string> planes;
     std::string planeString;
     while(std::getline(file, planeString, '\f')) {
-        planes.push_back(fromUtf8(planeString));
+        planes.push_back(Strings::fromUtf8(planeString));
     }
 
     // Unefunge
@@ -168,7 +135,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
         for(const auto& plane : planes) {
             std::basic_stringstream<char32_t> stream(plane);
             std::u32string l;
-            while(getLine(stream, l)) {
+            while(Strings::getLine(stream, l)) {
                 if(l != U"\\f") {
                     program.append(l);
                 }
@@ -190,7 +157,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
         for(const auto& plane : planes) {
             std::basic_stringstream<char32_t> stream(plane);
             std::u32string l;
-            while(getLine(stream, l)) {
+            while(Strings::getLine(stream, l)) {
                 if(l != U"\\f") {
                     lines.push_back(l);
                 }
@@ -222,7 +189,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
         std::basic_stringstream<char32_t> planeStream(plane);
         std::u32string line;
 
-        while(getLine(planeStream, line)) {
+        while(Strings::getLine(planeStream, line)) {
             if(line == U"\\f") {
                 maxY = std::max(maxY, l + 1);
                 l = 0;
