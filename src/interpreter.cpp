@@ -38,7 +38,7 @@ void quit(const int code) {
 
     std::cout << "\n\n\033[0m================================================================\n"
               << " Program has finished running.\n Exit code: " << code << "\n"
-              << "================================================================\n";
+              << "================================================================" << std::endl;
 
     #ifdef _WIN32
         restoreConsole();
@@ -112,7 +112,7 @@ int main(const int argc, char** argv) {
     } else {
         std::cout << " [ERROR] Could not read file: " << argv[1] << "\n"
                   << "================================================================\n\n";
-        return 2;
+        return 1;
     }
 
     FungeWorld& w = *world;
@@ -135,8 +135,8 @@ int main(const int argc, char** argv) {
         setupConsole();
     #endif
 
-    std::cout << " Starting!" << std::endl
-              << "================================================================\n\n";
+    std::cout << " Starting!\n"
+              << "================================================================\n" << std::endl;
 
     w.run();
 }

@@ -37,7 +37,8 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
                 for(size_t i = 0; i < line.length(); i += 16) {
                     const Vector chunk = {static_cast<int32_t>(i / 16), l / 16, p / 16};
                     chunks.try_emplace(chunk, 4096, U' ');
-                    chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, 16, line.substr(i, 16));
+                    const std::u32string sub = line.substr(i, 16);
+                    chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, sub.size(), sub);
                 }
 
                 maxX = std::max(maxX, static_cast<int32_t>(line.length()));
@@ -81,7 +82,8 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             for(size_t i = 0; i < line.length(); i += 16) {
                 const Vector chunk = {static_cast<int32_t>(i / 16), l / 16, p / 16};
                 chunks.try_emplace(chunk, 4096, U' ');
-                chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, 16, line.substr(i, 16));
+                const std::u32string sub = line.substr(i, 16);
+                chunks[chunk].replace(p % 16 * 256 + l % 16 * 16, sub.size(), sub);
             }
 
             maxX = std::max(maxX, static_cast<int32_t>(line.length()));
@@ -100,7 +102,8 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             for(size_t i = 0; i < line.length(); i += 64) {
                 const Vector chunk = {static_cast<int32_t>(i / 64), l / 64};
                 chunks.try_emplace(chunk, 4096, U' ');
-                chunks[chunk].replace(l % 64 * 64, 64, line.substr(i, 64));
+                const std::u32string sub = line.substr(i, 64);
+                chunks[chunk].replace(l % 64 * 64, sub.size(), sub);
             }
 
             maxX = std::max(maxX, static_cast<int32_t>(line.length()));
