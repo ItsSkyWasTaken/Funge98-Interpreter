@@ -233,7 +233,7 @@ void FungeWorld::put(const Vector& location, const char32_t value) {
     chunk[offset] = value;
 }
 
-std::pair<std::u32string&, uint16_t> FungeWorld::getSublocation(const Vector& v) {
+std::pair<std::u32string&, int> FungeWorld::getSublocation(const Vector& v) {
     const int32_t x = v.getX(), y = v.getY(), z = v.getZ();
     const std::pair<Vector, uint32_t> p = [&] {
         switch(dimensions) {

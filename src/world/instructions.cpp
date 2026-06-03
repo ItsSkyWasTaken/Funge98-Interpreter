@@ -499,11 +499,10 @@ void InstructionSet::load(FungeWorld& w) {
                     world->put(cursor, c);
                 }
 
-                cursor += {1, 0, 0};
+                cursor += {1, 1, 1};
             }
 
-            const Vector upperBound = cursor + Vector(1, 0, 0);
-            const Vector size = upperBound - start;
+            const Vector upperBound = cursor + Vector(1, 0, 0), size = upperBound - start;
             world->low = {std::min(world->low.getX(), start.getX()), world->low.getY(), world->low.getZ()};
             world->high = {std::max(world->high.getX(), upperBound.getX()), world->high.getY(), world->high.getZ()};
 
@@ -530,8 +529,7 @@ void InstructionSet::load(FungeWorld& w) {
                 }
             }
 
-            const Vector upperBound = cursor + Vector(1);
-            const Vector size = upperBound - start;
+            const Vector upperBound = cursor + Vector(1), size = upperBound - start;
             world->low = {std::min(world->low.getX(), start.getX())};
             world->high = {std::max(world->high.getX(), upperBound.getX())};
 
@@ -568,8 +566,7 @@ void InstructionSet::load(FungeWorld& w) {
                 }
             }
 
-            const auto upperBound = Vector(maxX, cursor.getY());
-            const Vector size = upperBound - start;
+            const auto upperBound = Vector(maxX, cursor.getY()), size = upperBound - start;
             world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY())};
             world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY())};
 
@@ -613,8 +610,7 @@ void InstructionSet::load(FungeWorld& w) {
             cursor = {start.getX(), start.getY(), cursor.getZ() + 1};
         }
 
-        const auto upperBound = Vector(maxX, maxY, cursor.getZ());
-        const Vector size = upperBound - start;
+        const auto upperBound = Vector(maxX, maxY, cursor.getZ()), size = upperBound - start;
         world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY()), std::min(world->low.getZ(), start.getZ())};
         world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY()), std::max(world->high.getZ(), upperBound.getZ())};
 
@@ -717,9 +713,209 @@ void InstructionSet::load(FungeWorld& w) {
         return true;
     };
 
-    // TODO: implement output command
-    commands[U'o'] = [](InstructionPointer& _) {
-        return false;
+    // Output File
+    commands[U'o'] = [](const InstructionPointer& ip) {
+        if(!world->write) {
+            return false;
+        }
+
+        Stack& stack = ip.getStack();
+
+        const std::u32string u32filename = stack.popString();
+        const std::filesystem::path filePath = Strings::toUtf8(u32filename), parentPath = filePath.parent_path();
+
+        if(!parentPath.empty() && !std::filesystem::exists(parentPath)) {
+            std::error_code ec;
+            std::filesystem::create_directories(parentPath, ec);
+            if(ec) {
+                stack.push(u32filename);
+                return false;
+            }
+        }
+
+        std::ofstream outFile(filePath);
+        if(!outFile.is_open()) {
+            stack.push(u32filename);
+            return false;
+        }
+
+        const int32_t flags = stack.pop();
+        const Vector size = stack.popVector(world->dimensions);
+        const Vector origin = stack.popVector(world->dimensions);
+
+        std::u32string contents;
+
+        switch(world->dimensions) {
+            case 1:
+                contents.reserve(size.getX());
+                for(int x = 0; x < size.getX(); x++) {
+                    char32_t c = world->get(origin + Vector(x));
+
+                    if(flags & 1) {
+                        if(c == U'\f') {
+                            if(size_t p = contents.find_last_not_of(U" \n\r"); p != std::u32string::npos) {
+                                contents.erase(p + 1);
+                            } else {
+                                contents.clear();
+                            }
+                        } else if(c == U'\n') {
+                            if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                contents.erase(p + 1);
+                            } else {
+                                contents.clear();
+                            }
+                        } else if(c == U'\r') {
+                            if(world->get(origin + Vector(x + 1)) == U'\n') {
+                                x++;
+                            }
+
+                            if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                contents.erase(p + 1);
+                            } else {
+                                contents.clear();
+                            }
+                        }
+                    }
+
+                    contents.push_back(c);
+                }
+
+                if(flags & 1) {
+                    if(size_t p = contents.find_last_not_of(U" \n\r\f"); p != std::u32string::npos) {
+                        contents.erase(p + 1);
+                    } else {
+                        contents.clear();
+                    }
+                }
+
+                break;
+            case 2:
+                contents.reserve(size.getX() * size.getY());
+                for(int y = 0; y < size.getY(); y++) {
+                    for(int x = 0; x < size.getX(); x++) {
+                        char32_t c = world->get(origin + Vector(x, y));
+
+                        if(flags & 1) {
+                            if(c == U'\f') {
+                                if(size_t p = contents.find_last_not_of(U" \n\r"); p != std::u32string::npos) {
+                                    contents.erase(p + 1);
+                                } else {
+                                    contents.clear();
+                                }
+                            } else if(c == U'\n') {
+                                if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                    contents.erase(p + 1);
+                                } else {
+                                    contents.clear();
+                                }
+                            } else if(c == U'\r') {
+                                if(world->get(origin + Vector(x + 1)) == U'\n') {
+                                    x++;
+                                }
+
+                                if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                    contents.erase(p + 1);
+                                } else {
+                                    contents.clear();
+                                }
+                            }
+                        }
+
+                        contents.push_back(c);
+                    }
+
+                    if(flags & 1) {
+                        if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                            contents.erase(p + 1);
+                        } else {
+                            contents.clear();
+                        }
+                    }
+
+                    contents.push_back(U'\n');
+                }
+
+                if(flags & 1) {
+                    if(size_t p = contents.find_last_not_of(U" \n\r\f"); p != std::u32string::npos) {
+                        contents.erase(p + 1);
+                    } else {
+                        contents.clear();
+                    }
+                }
+
+                break;
+            default:
+                assert(world->dimensions == 3);
+                contents.reserve(size.getX() * size.getY() * size.getZ());
+
+                for(int z = 0; z < size.getZ(); z++) {
+                    for(int y = 0; y < size.getY(); y++) {
+                        for(int x = 0; x < size.getX(); x++) {
+                            char32_t c = world->get(origin + Vector(x, y, z));
+
+                            if(flags & 1) {
+                                if(c == U'\f') {
+                                    if(size_t p = contents.find_last_not_of(U" \n\r"); p != std::u32string::npos) {
+                                        contents.erase(p + 1);
+                                    } else {
+                                        contents.clear();
+                                    }
+                                } else if(c == U'\n') {
+                                    if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                        contents.erase(p + 1);
+                                    } else {
+                                        contents.clear();
+                                    }
+                                } else if(c == U'\r') {
+                                    if(world->get(origin + Vector(x + 1)) == U'\n') {
+                                        x++;
+                                    }
+
+                                    if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                        contents.erase(p + 1);
+                                    } else {
+                                        contents.clear();
+                                    }
+                                }
+                            }
+
+                            contents.push_back(c);
+                        }
+
+                        if(flags & 1) {
+                            if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
+                                contents.erase(p + 1);
+                            } else {
+                                contents.clear();
+                            }
+                        }
+
+                        contents.push_back(U'\n');
+                    }
+
+                    if(flags & 1) {
+                        if(size_t p = contents.find_last_not_of(U" \n\r"); flags & 1 && p != std::u32string::npos) {
+                            contents.erase(p + 1);
+                        } else {
+                            contents.clear();
+                        }
+                    }
+
+                    contents.push_back(U'\f');
+                }
+
+                if(flags & 1) {
+                    if(size_t p = contents.find_last_not_of(U" \n\r\f"); p != std::u32string::npos) {
+                        contents.erase(p + 1);
+                    } else {
+                        contents.clear();
+                    }
+                }
+        }
+
+        outFile << Strings::toUtf8(contents);
+        outFile.close();
+        return true;
     };
 
     // Put value of TOS at a location in the Funge space.
@@ -926,9 +1122,9 @@ void InstructionSet::load(FungeWorld& w) {
                 if(c == 5) break;
             }
 
-            // Case 4: push version number - v0.1.1 = 101.
+            // Case 4: push version number - v0.2.0 = 200.
             case 4: {
-                stack.push(101);
+                stack.push(200);
                 if(c == 4) break;
             }
 
@@ -948,6 +1144,8 @@ void InstructionSet::load(FungeWorld& w) {
             case 1: {
                 int32_t bits = 1;
                 bits |= world->canExecute() ? 8 : 0;
+                bits |= world->canWrite() ? 4 : 0;
+                bits |= world->canRead() ? 2 : 0;
 
                 stack.push(bits);
             }

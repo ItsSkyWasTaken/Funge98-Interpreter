@@ -137,7 +137,7 @@ class FungeWorld {
         /// @param v        a set of coordinates to get
         ///
         /// @return   the chunk and index associated with the specified coordinates
-        [[nodiscard]] std::pair<std::u32string&, uint16_t> getSublocation(const Vector& v);
+        [[nodiscard]] std::pair<std::u32string&, int> getSublocation(const Vector& v);
 
         /// The queue of instruction pointers. Instruction pointers are polled, executed, and re-offered in a circle.
         std::queue<InstructionPointer*> pointers;
