@@ -370,7 +370,18 @@ void FungeWorld::tick(InstructionPointer& ip) {
     if(ip.getPointerState() == PointerState::STRING) {
         if(const char32_t c = get(ip.getLocation()); c == U'"') {
             ip.setPointerState(PointerState::NORMAL);
-        } else if(c != U' ' || ip.getStack().peek() != U' ') {
+        } else {
+            if(c == U' ') {
+                ip.setPointerState(PointerState::STRING_IGNORE_SPACES);
+            }
+
+            ip.getStack().push(c);
+        }
+    } else if(ip.getPointerState() == PointerState::STRING_IGNORE_SPACES) {
+        if(const char32_t c = get(ip.getLocation()); c == U'"') {
+            ip.setPointerState(PointerState::NORMAL);
+        } else if(c != U' ') {
+            ip.setPointerState(PointerState::STRING);
             ip.getStack().push(c);
         }
     } else {

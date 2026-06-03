@@ -15,6 +15,9 @@ enum class PointerState {
     /// state, it pushes that ASCII value onto the stack.
     STRING,
 
+    /// "String mode", but spaces are ignored. This state is used for whitespace collapsing.
+    STRING_IGNORE_SPACES,
+
     /// The pointer stops and exits the world at the end of the tick.
     EXITING
 };
