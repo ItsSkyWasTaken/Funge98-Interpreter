@@ -326,6 +326,34 @@ bool FungeWorld::boundsCheck(const InstructionPointer& ip) const {
     return true;
 }
 
+bool FungeWorld::boundsCheck(const Vector& position, const Vector& delta) const {
+    if(position.getX() < low.getX() && delta.getX() <= 0) {
+        return false;
+    }
+
+    if(position.getY() < low.getY() && delta.getY() <= 0) {
+        return false;
+    }
+
+    if(position.getZ() < low.getZ() && delta.getZ() <= 0) {
+        return false;
+    }
+
+    if(position.getX() > high.getX() && delta.getX() >= 0) {
+        return false;
+    }
+
+    if(position.getY() > high.getY() && delta.getY() >= 0) {
+        return false;
+    }
+
+    if(position.getZ() > high.getZ() && delta.getZ() >= 0) {
+        return false;
+    }
+
+    return true;
+}
+
 void FungeWorld::run() {
     pointers.push(new InstructionPointer(dimensions));
 

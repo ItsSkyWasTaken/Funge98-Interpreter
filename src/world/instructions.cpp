@@ -636,55 +636,57 @@ void InstructionSet::load(FungeWorld& w) {
         }
 
         // Find next instruction.
-        ip.advance(1);
-        auto c = static_cast<uint32_t>(world->get(ip.getLocation()));
+        Vector pos(ip.getLocation()), delta(ip.getDelta());
+        pos += delta;
+        auto c = static_cast<uint32_t>(world->get(pos));
 
         Retry:
         while(c > 126 || c <= 32) {
-            ip.advance(1);
+            pos += delta;
 
-            if(!world->boundsCheck(ip)) {
-                ip.setDelta(ip.getDelta() * -1);
+            if(!world->boundsCheck(pos, delta)) {
+                delta *= -1;
                 do {
-                    ip.advance(1);
-                } while(world->boundsCheck(ip));
-                ip.setDelta(ip.getDelta() * -1);
-                ip.advance(1);
+                    pos += delta;
+                } while(world->boundsCheck(pos, delta));
+                delta *= -1;
+                pos += delta;
             }
 
-            c = static_cast<uint32_t>(world->get(ip.getLocation()));
+            c = static_cast<uint32_t>(world->get(pos));
         }
 
         if(c == U';') {
             ip.advance(1);
-            c = static_cast<uint32_t>(world->get(ip.getLocation()));
+            c = static_cast<uint32_t>(world->get(pos));
             while(c != U';') {
-                ip.advance(1);
+                pos += delta;
 
-                if(!world->boundsCheck(ip)) {
-                    ip.setDelta(ip.getDelta() * -1);
+                if(!world->boundsCheck(pos, delta)) {
+                    delta *= -1;
                     do {
-                        ip.advance(1);
-                    } while(world->boundsCheck(ip));
-                    ip.setDelta(ip.getDelta() * -1);
-                    ip.advance(1);
+                        pos += delta;
+                    } while(world->boundsCheck(pos, delta));
+                    delta *= -1;
+                    pos += delta;
                 }
 
-                c = static_cast<uint32_t>(world->get(ip.getLocation()));
+                c = static_cast<uint32_t>(world->get(pos));
             }
 
-            ip.advance(1);
-            c = static_cast<uint32_t>(world->get(ip.getLocation()));
+            pos += delta;
+            c = static_cast<uint32_t>(world->get(pos));
             goto Retry;
         }
 
         if(supports(c)) {
             if(n == 0) {
+                ip.setLocation(pos);
                 return true;
             }
 
             for(int i = 0; i < n; i++) {
-                if(!execute(ip)) {
+                if(!execute(ip, c)) {
                     return false;
                 }
             }
@@ -692,7 +694,6 @@ void InstructionSet::load(FungeWorld& w) {
             return true;
         }
 
-        ip.setLocation(old);
         return false;
     };
 
@@ -1252,6 +1253,15 @@ bool InstructionSet::supports(const char32_t command) {
 
 bool InstructionSet::execute(InstructionPointer& ip) {
     if(!commands[world->get(ip.getLocation())](ip)) {
+        ip.setDelta(ip.getDelta() * -1);
+        return false;
+    }
+
+    return true;
+}
+
+bool InstructionSet::execute(InstructionPointer& ip, const char32_t c) {
+    if(!commands[c](ip)) {
         ip.setDelta(ip.getDelta() * -1);
         return false;
     }

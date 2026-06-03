@@ -19,6 +19,12 @@ class InstructionSet {
         /// @param ip  a reference to the pointer that should execute the command
         static bool execute(InstructionPointer& ip);
 
+        /// Executes a specified command from the pointer's location.
+        ///
+        /// @param ip  a reference to the pointer that should execute the command
+        /// @param c   the command to execute
+        static bool execute(InstructionPointer& ip, char32_t c);
+
         /// Check if a character has a mapped command.
         ///
         /// @param command  the character to check

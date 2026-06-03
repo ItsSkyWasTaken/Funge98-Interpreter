@@ -101,6 +101,16 @@ class FungeWorld {
         ///          the world and traveling away from it)
         [[nodiscard]] bool boundsCheck(const InstructionPointer& ip) const;
 
+        /// Checks if a temporary instruction pointer is within the bounds of the world, or if out of bounds, it checks
+        /// for a travel direction towards the bounds of the world.
+        ///
+        /// @param position  the location to check
+        /// @param delta     the delta to check with
+        ///
+        /// @return  true if the temporary pointer is either in the world or traveling towards it (false if the pointer
+        ///          is out of the world and traveling away from it)
+        [[nodiscard]] bool boundsCheck(const Vector& position, const Vector& delta) const;
+
         /// The number of dimensions that this world supports.
         const int32_t dimensions;
 
