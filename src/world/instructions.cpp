@@ -117,7 +117,7 @@ void InstructionSet::load(FungeWorld& w) {
     commands[U','] = [](const InstructionPointer& ip) {
         const char32_t c = ip.getStack().popChar();
         const std::u32string s(1, c);
-        std::cout << Strings::toUtf8(s);
+        std::cout << Strings::toUtf8(s) << std::flush;
 
         // Check ANSI status, to determine how to update the cursor.
         switch(ansiFlag) {
@@ -642,12 +642,17 @@ void InstructionSet::load(FungeWorld& w) {
         Retry:
         while(c > 126 || c <= 32) {
             ip.advance(1);
-            c = static_cast<uint32_t>(world->get(ip.getLocation()));
 
             if(!world->boundsCheck(ip)) {
-                ip.setLocation(old);
-                return false;
+                ip.setDelta(ip.getDelta() * -1);
+                do {
+                    ip.advance(1);
+                } while(world->boundsCheck(ip));
+                ip.setDelta(ip.getDelta() * -1);
+                ip.advance(1);
             }
+
+            c = static_cast<uint32_t>(world->get(ip.getLocation()));
         }
 
         if(c == U';') {
@@ -655,12 +660,17 @@ void InstructionSet::load(FungeWorld& w) {
             c = static_cast<uint32_t>(world->get(ip.getLocation()));
             while(c != U';') {
                 ip.advance(1);
-                c = static_cast<uint32_t>(world->get(ip.getLocation()));
 
                 if(!world->boundsCheck(ip)) {
-                    ip.setLocation(old);
-                    return false;
+                    ip.setDelta(ip.getDelta() * -1);
+                    do {
+                        ip.advance(1);
+                    } while(world->boundsCheck(ip));
+                    ip.setDelta(ip.getDelta() * -1);
+                    ip.advance(1);
                 }
+
+                c = static_cast<uint32_t>(world->get(ip.getLocation()));
             }
 
             ip.advance(1);
@@ -682,7 +692,6 @@ void InstructionSet::load(FungeWorld& w) {
             return true;
         }
 
-        // TODO: implement wrap-around
         ip.setLocation(old);
         return false;
     };
@@ -1122,9 +1131,9 @@ void InstructionSet::load(FungeWorld& w) {
                 if(c == 5) break;
             }
 
-            // Case 4: push version number - v0.2.1 = 201.
+            // Case 4: push version number - v0.2.2 = 202.
             case 4: {
-                stack.push(200);
+                stack.push(202);
                 if(c == 4) break;
             }
 

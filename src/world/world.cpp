@@ -354,7 +354,12 @@ void FungeWorld::tick(InstructionPointer& ip) {
             c = static_cast<uint32_t>(get(ip.getLocation()));
 
             if(!boundsCheck(ip)) {
-                goto Out;
+                ip.setDelta(ip.getDelta() * -1);
+                do {
+                    ip.advance(1);
+                } while(boundsCheck(ip));
+                ip.setDelta(ip.getDelta() * -1);
+                ip.advance(1);
             }
         }
 
@@ -366,7 +371,12 @@ void FungeWorld::tick(InstructionPointer& ip) {
                 c = static_cast<uint32_t>(get(ip.getLocation()));
 
                 if(!boundsCheck(ip)) {
-                    goto Out;
+                    ip.setDelta(ip.getDelta() * -1);
+                    do {
+                        ip.advance(1);
+                    } while(boundsCheck(ip));
+                    ip.setDelta(ip.getDelta() * -1);
+                    ip.advance(1);
                 }
             }
 
@@ -389,10 +399,15 @@ void FungeWorld::tick(InstructionPointer& ip) {
         ip.advance(1);
 
         if(!boundsCheck(ip)) {
-            delete &ip;
-        } else {
-            pointers.push(&ip);
+            ip.setDelta(ip.getDelta() * -1);
+            do {
+                ip.advance(1);
+            } while(boundsCheck(ip));
+            ip.setDelta(ip.getDelta() * -1);
+            ip.advance(1);
         }
+
+        pointers.push(&ip);
     }
 }
 
