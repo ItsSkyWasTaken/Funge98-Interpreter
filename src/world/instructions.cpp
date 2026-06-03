@@ -309,7 +309,10 @@ void InstructionSet::load(FungeWorld& w) {
 
     // Duplicate top value of the stack.
     commands[U':'] = [](const InstructionPointer& ip) {
-        ip.getStack().duplicate();
+        Stack& stack = ip.getStack();
+        const int32_t n = stack.pop();
+        stack.push(n);
+        stack.push(n);
         return true;
     };
 
@@ -627,7 +630,6 @@ void InstructionSet::load(FungeWorld& w) {
 
     // Iterate next instruction.
     commands[U'k'] = [](InstructionPointer& ip) {
-        const Vector old = ip.getLocation();
         const int32_t n = ip.getStack().pop();
 
         // Negative parameters result in an error.
@@ -1014,151 +1016,99 @@ void InstructionSet::load(FungeWorld& w) {
         const int32_t c = stack.pop();
         const std::vector<int32_t> sizes = ip.stackSizes();
 
-        switch(c) {
-            // If out of range, push everything.
-            default:
+        // Push environment variables onto the stack as null-terminated strings (unordered); the end is terminated by
+        // another null character.
+        stack.push(0);
+        for(const std::u32string& envar : world->envars) {
+            stack.push(envar);
+        }
 
-            // Case 20: push environment variables onto the stack as null-terminated strings (unordered); the end is
-            // terminated by another null character.
-            case 20: {
-                stack.push(0);
-                for(const std::u32string& envar : world->envars) {
-                    stack.push(envar);
-                }
+        // Push arguments onto the stack as null-terminated strings; the end is terminated by another null.
+        stack.push(0);
+        for(const std::u32string& arg : world->args | std::views::reverse) {
+            stack.push(arg);
+        }
 
-                // Only break if the value was specified; else, fall through and push everything else.
-                if(c == 20) break;
+        // Push the sizes of each stack in the SS; TOSS is on top.
+        for(const int32_t size : sizes | std::views::reverse) {
+            stack.push(size);
+        }
+
+        // Push the number of stacks in the SS onto the stack.
+        stack.push(static_cast<int32_t>(sizes.size()));
+
+        // Push current time as an int in the form of (hours * 65536) + (minutes * 256) + (seconds).
+        const std::time_t t = std::time(nullptr);
+        const std::tm* localTime = std::localtime(&t);
+        stack.push(localTime->tm_hour * 65536 + localTime->tm_min * 256 + localTime->tm_sec);
+
+        // Push current date as an int in the form (yearsSince1900 * 65536) + (month * 256) + (dayOfMonth).
+        stack.push(localTime->tm_year * 65536 + (localTime->tm_mon + 1) * 256 + localTime->tm_mday);
+
+        // Push high corner of region with non-space cells, relative to low the corner.
+        stack.push(world->high - world->low - Vector(1, 1, 1));
+
+        // Push low corner of region with non-space cells, relative to the origin.
+        stack.push(world->low);
+
+        // Push pointer's storage offset.
+        stack.push(ip.getOffset());
+
+        // Push pointer's delta.
+        stack.push(ip.getDelta());
+
+        // Push pointer's location.
+        stack.push(ip.getLocation());
+
+        // Push pointer's team number (not relevant in this interpreter; no networking capabilities yet).
+        stack.push(0);
+
+        // Push pointer's unique ID.
+        stack.push(static_cast<int32_t>(ip.id));
+
+        // Push number of world dimensions.
+        stack.push(world->dimensions);
+
+        // Push file separator character.
+        stack.push(static_cast<char32_t>(std::filesystem::path::preferred_separator));
+
+        // Push Operating Paradigm - equivalent to system() if enabled.
+        stack.push(world->canExecute() ? 1 : 0);
+
+        // Push version number - v0.2.2 = 202.
+        stack.push(202);
+
+        // Push handprint - ISWT (0x49535754).
+        stack.push(0x49535754);
+
+        // Push number of bytes per cell - 32-bits = 4 bytes.
+        stack.push(4);
+
+        // Push flags concerning availability of (=, o, i, t).
+        int32_t bits = 1;
+        bits |= world->canExecute() ? 8 : 0;
+        bits |= world->canWrite() ? 4 : 0;
+        bits |= world->canRead() ? 2 : 0;
+        stack.push(bits);
+
+        if(c <= 0) {
+            return true;
+        }
+
+        const int pushedCells = ip.stackSizes()[0] - sizes[0];
+
+        for(int _ = 0; _ < c - 1; _++) {
+            stack.pop();
+        }
+
+        if(c < pushedCells) {
+            const int32_t temp = stack.pop();
+
+            for(int _ = c; _ < pushedCells; _++) {
+                stack.pop();
             }
 
-            // Case 19: push arguments onto the stack as null-terminated strings; the end is terminated by another null.
-            case 19: {
-                stack.push(0);
-                for(const std::u32string& arg : world->args | std::views::reverse) {
-                    stack.push(arg);
-                }
-
-                if(c == 19) break;
-            }
-
-            // Case 18: push the sizes of each stack in the SS; TOSS is on top.
-            case 18: {
-                for(const int32_t size : sizes | std::views::reverse) {
-                    stack.push(size);
-                }
-                if(c == 18) break;
-            }
-
-            // Case 17: push the number of stacks in the SS onto the stack.
-            case 17: {
-                stack.push(static_cast<int32_t>(sizes.size()));
-                if(c == 17) break;
-            }
-
-            // Case 16: push current time as an int in the form of (hours * 65536) + (minutes * 256) + (seconds).
-            case 16: {
-                const std::time_t t = std::time(nullptr);
-                const std::tm* localTime = std::localtime(&t);
-                stack.push(localTime->tm_hour * 65536 + localTime->tm_min * 256 + localTime->tm_sec);
-
-                if(c == 16) break;
-            }
-
-            // Case 15: push current date as an int in the form (yearsSince1900 * 65536) + (month * 256) + (dayOfMonth).
-            case 15: {
-                const std::time_t t = std::time(nullptr);
-                const std::tm* localTime = std::localtime(&t);
-                stack.push(localTime->tm_year * 65536 + (localTime->tm_mon + 1) * 256 + localTime->tm_mday);
-
-                if(c == 15) break;
-            }
-
-            // Case 14: push high corner of region with non-space cells, relative to low the corner.
-            case 14: {
-                stack.push(world->high - world->low);
-                if(c == 14) break;
-            }
-
-            // Case 13: push low corner of region with non-space cells, relative to the origin.
-            case 13: {
-                stack.push(world->low);
-                if(c == 13) break;
-            }
-
-            // Case 12: push pointer's storage offset.
-            case 12: {
-                stack.push(ip.getOffset());
-                if(c == 12) break;
-            }
-
-            // Case 11: push pointer's delta.
-            case 11: {
-                stack.push(ip.getDelta());
-                if(c == 11) break;
-            }
-
-            // Case 10: push pointer's location.
-            case 10: {
-                stack.push(ip.getLocation());
-                if(c == 10) break;
-            }
-
-            // Case 9: push pointer's team number (not relevant in this interpreter; no networking capabilities yet).
-            case 9: {
-                stack.push(0);
-                if(c == 9) break;
-            }
-
-            // Case 8: push pointer's unique ID.
-            case 8: {
-                stack.push(ip.id);
-                if(c == 8) break;
-            }
-
-            // Case 7: push number of world dimensions.
-            case 7: {
-                stack.push(world->dimensions);
-                if(c == 7) break;
-            }
-
-            // Case 6: push file separator character.
-            case 6: {
-                stack.push(static_cast<char32_t>(std::filesystem::path::preferred_separator));
-                if(c == 6) break;
-            }
-
-            // Case 5: push Operating Paradigm - equivalent to system() if enabled.
-            case 5: {
-                stack.push(world->canExecute() ? 1 : 0);
-                if(c == 5) break;
-            }
-
-            // Case 4: push version number - v0.2.2 = 202.
-            case 4: {
-                stack.push(202);
-                if(c == 4) break;
-            }
-
-            // Case 3: push handprint - ISWT (0x49535754).
-            case 3: {
-                stack.push(0x49535754);
-                if(c == 3) break;
-            }
-
-            // Case 2: push number of bytes per cell - 32-bits = 4 bytes.
-            case 2: {
-                stack.push(4);
-                if(c == 2) break;
-            }
-
-            // Case 1: push flags concerning availability of (=, o, i, t).
-            case 1: {
-                int32_t bits = 1;
-                bits |= world->canExecute() ? 8 : 0;
-                bits |= world->canWrite() ? 4 : 0;
-                bits |= world->canRead() ? 2 : 0;
-
-                stack.push(bits);
-            }
+            stack.push(temp);
         }
 
         return true;

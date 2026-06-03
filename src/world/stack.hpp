@@ -58,9 +58,6 @@ class Stack {
         /// @return  a copy of the top integer value of the stack
         int32_t peek();
 
-        /// Duplicates the top element of the TOSS.
-        void duplicate();
-
         /// Clears the TOSS.
         void clear();
 

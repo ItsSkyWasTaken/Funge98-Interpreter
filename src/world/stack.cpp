@@ -60,14 +60,6 @@ int32_t Stack::peek() {
     return toss()->empty() ? 0 : toss()->top();
 }
 
-void Stack::duplicate() {
-    if(std::stack<int32_t>& stack = *toss(); stack.empty()) {
-        stack.push(0);
-    } else {
-        stack.push(stack.top());
-    }
-}
-
 void Stack::clear() {
     std::stack<int32_t>& stack = *toss();
 

@@ -128,14 +128,14 @@ class InstructionPointer {
         [[nodiscard]] std::vector<int32_t> stackSizes() const;
 
         /// The unique id of this pointer.
-        const int32_t id;
+        const uint32_t id;
 
         /// Destructor. Deletes the associated stack.
         ~InstructionPointer();
 
     private:
         /// The ID of the next pointer.
-        static int32_t nextId;
+        static uint32_t nextId;
 
         /// The current position of this instruction pointer.
         Vector location;

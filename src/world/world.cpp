@@ -236,6 +236,9 @@ void FungeWorld::put(const Vector& location, const char32_t value) {
 
     const auto [chunk, offset] = getSublocation(location);
     chunk[offset] = value;
+
+    low = {std::min(low.getX(), location.getX()), std::min(low.getY(), location.getY()), std::min(low.getY(), location.getY())};
+    high = {std::max(high.getX(), location.getX() + 1), std::max(high.getY(), location.getY() + 1), std::max(high.getY(), location.getY() + 1)};
 }
 
 std::pair<std::u32string&, int> FungeWorld::getSublocation(const Vector& v) {

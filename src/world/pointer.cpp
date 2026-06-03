@@ -4,7 +4,7 @@
 
 #include "vector.hpp"
 
-int32_t InstructionPointer::nextId = 0;
+uint32_t InstructionPointer::nextId = 0;
 
 InstructionPointer::InstructionPointer(const int32_t dimensions):
         InstructionPointer(Vector::origin(dimensions), Vector::east(dimensions)) {}
@@ -23,7 +23,7 @@ InstructionPointer* InstructionPointer::split() const {
 }
 
 void InstructionPointer::advance(const int steps) {
-    location += (delta * steps);
+    location += delta * steps;
 }
 
 const Vector& InstructionPointer::getLocation() const {
