@@ -1,5 +1,7 @@
 #include "pointer.hpp"
 
+#include <cassert>
+
 #include "vector.hpp"
 
 int32_t InstructionPointer::nextId = 0;
@@ -96,27 +98,23 @@ void InstructionPointer::startBlock() {
 }
 
 void InstructionPointer::endBlock() {
+    assert(stack->soss() != nullptr);
+
     const int32_t n = stack->pop();
     int32_t x = 0, y = 0, z = 0;
 
     switch(storageOffset.dimensions) {
         case 1:
-            x = stack->soss()->top();
-            stack->soss()->pop();
+            x = stack->popFromSoss();
             break;
         case 2:
-            x = stack->soss()->top();
-            stack->soss()->pop();
-            y = stack->soss()->top();
-            stack->soss()->pop();
+            y = stack->popFromSoss();
+            x = stack->popFromSoss();
             break;
         default:
-            x = stack->soss()->top();
-            stack->soss()->pop();
-            y = stack->soss()->top();
-            stack->soss()->pop();
-            z = stack->soss()->top();
-            stack->soss()->pop();
+            z = stack->popFromSoss();
+            y = stack->popFromSoss();
+            x = stack->popFromSoss();
     }
 
     storageOffset = {x, y, z};

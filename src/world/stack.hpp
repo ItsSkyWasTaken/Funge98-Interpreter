@@ -149,6 +149,8 @@ class Stack {
         /// @return  a pointer to the second stack from the top of the global stack, or \code nullptr\endcode if there
         ///          is only one stack in the main stack
         std::stack<int32_t>* soss();
+
+        int32_t popFromSoss();
 };
 
 #endif

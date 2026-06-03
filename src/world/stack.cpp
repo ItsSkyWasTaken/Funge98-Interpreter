@@ -255,3 +255,13 @@ std::stack<int32_t>* Stack::toss() {
 std::stack<int32_t>* Stack::soss() {
     return ss.size() < 2 ? nullptr : &ss[ss.size() - 2];
 }
+
+int32_t Stack::popFromSoss() {
+    if(soss()->empty()) {
+        return 0;
+    }
+
+    const int32_t result = soss()->top();
+    soss()->pop();
+    return result;
+}

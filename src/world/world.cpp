@@ -398,7 +398,6 @@ void FungeWorld::tick(InstructionPointer& ip) {
                     ip.advance(1);
                 } while(boundsCheck(ip));
                 ip.setDelta(ip.getDelta() * -1);
-                ip.advance(1);
             }
         }
 
@@ -415,7 +414,6 @@ void FungeWorld::tick(InstructionPointer& ip) {
                         ip.advance(1);
                     } while(boundsCheck(ip));
                     ip.setDelta(ip.getDelta() * -1);
-                    ip.advance(1);
                 }
             }
 
@@ -443,7 +441,6 @@ void FungeWorld::tick(InstructionPointer& ip) {
                 ip.advance(1);
             } while(boundsCheck(ip));
             ip.setDelta(ip.getDelta() * -1);
-            ip.advance(1);
         }
 
         pointers.push(&ip);
