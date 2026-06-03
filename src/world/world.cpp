@@ -335,10 +335,10 @@ void FungeWorld::run() {
 
 void FungeWorld::tick(InstructionPointer& ip) {
     if(ip.getPointerState() == PointerState::STRING) {
-        if(get(ip.getLocation()) == U'"') {
+        if(const char32_t c = get(ip.getLocation()); c == U'"') {
             ip.setPointerState(PointerState::NORMAL);
-        } else {
-            ip.getStack().push(get(ip.getLocation()));
+        } else if(c != U' ' || ip.getStack().peek() != U' ') {
+            ip.getStack().push(c);
         }
     } else {
         auto c = static_cast<uint32_t>(get(ip.getLocation()));

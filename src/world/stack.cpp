@@ -56,6 +56,10 @@ void Stack::push(const std::u32string& s) {
     }
 }
 
+int32_t Stack::peek() {
+    return toss()->top();
+}
+
 void Stack::duplicate() {
     if(std::stack<int32_t>& stack = *toss(); stack.empty()) {
         stack.push(0);

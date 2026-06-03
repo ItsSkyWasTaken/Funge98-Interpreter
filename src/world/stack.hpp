@@ -53,6 +53,11 @@ class Stack {
         /// @param s  the string to push to the stack
         void push(const std::u32string& s);
 
+        /// Gets a copy of the top element as an integer.
+        ///
+        /// @return  a copy of the top integer value of the stack
+        int32_t peek();
+
         /// Duplicates the top element of the TOSS.
         void duplicate();
 

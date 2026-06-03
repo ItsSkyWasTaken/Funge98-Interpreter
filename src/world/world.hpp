@@ -134,7 +134,7 @@ class FungeWorld {
 
         /// Gets the chunk and index associated with the specified coordinates.
         ///
-        /// @param v        a set of coordinates to get
+        /// @param v  a set of coordinates to get
         ///
         /// @return   the chunk and index associated with the specified coordinates
         [[nodiscard]] std::pair<std::u32string&, int> getSublocation(const Vector& v);

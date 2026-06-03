@@ -36,9 +36,9 @@ FungeWorld* world;
 void quit(const int code) {
     delete world;
 
-    std::cout << std::endl << std::endl << "\033[0m================================================================" << std::endl
-              << " Program has finished running." << std::endl << " Exit code: " << code << std::endl
-              << "================================================================" << std::endl;
+    std::cout << "\n\n\033[0m================================================================\n"
+              << " Program has finished running.\n Exit code: " << code << "\n"
+              << "================================================================\n";
 
     #ifdef _WIN32
         restoreConsole();

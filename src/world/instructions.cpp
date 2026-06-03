@@ -1122,7 +1122,7 @@ void InstructionSet::load(FungeWorld& w) {
                 if(c == 5) break;
             }
 
-            // Case 4: push version number - v0.2.0 = 200.
+            // Case 4: push version number - v0.2.1 = 201.
             case 4: {
                 stack.push(200);
                 if(c == 4) break;

@@ -13,28 +13,25 @@ as such, it is unstable and will undergo many rapid changes in the near future. 
 are inconsistent with the standard Funge98 specification, which I plan to sort out as I explore both C++ and Funge98 
 more. As such, some important details about this interpreter in its current state are as follows:
 
-- Missing instructions (WIP): `i`, `o`, `(`, and `)` (and by extension, all uppercase letters)
-- String mode: add all characters "as is"; no whitespace collapsing
-- The form feed character is not yet supported in Trefunge files; currently, new planes on the z-axis can be added by
-  writing `\f` on an otherwise empty line.
+- Missing instructions (WIP): `(`, and `)` (and by extension, all uppercase letters)
 
 These are the details that are received as a result of the GetSysInfo (`y`) command:
 
 - Concurrent Funge98 (`t`) enabled: **Y**
-- Input (`i`) enabled: **N** (planned)
-- Output (`o`) enabled: **N** (planned)
+- Input (`i`) enabled: **N** by default; must specify `--read`, `-r`, or `-i` for **Y**
+- Output (`o`) enabled: **N** by default; must specify `--write`, `-w`, or `-o` for **Y**
 - Execute (`=`) enabled: **N** by default; must specify `--execute` or `-e` for **Y**
 - I/O: **buffered**
 - Cell size: **32-bit**
 - Handprint: **1230198612** (`0x49535754`)
-- Version: v0.1.1 (`101`)
+- Version: v0.2.1 (`201`)
 - Operating paradigm: Equivalent to C-language `system()`
 
 ## Running a Funge98 File
 
 **Note:** The compiled executable is currently only provided for Windows. Since this program uses only standard C++ 
-libraries and no third-party libraries, the source code should compile and run as intended on any platform, but macOS 
-and Linux users will need to download the source code (provided in a ZIP) and compile it themselves with a C++26 
+libraries and no third-party libraries, the source code should compile and run as intended on any platform, but for now,
+macOS and Linux users will need to download the source code (provided in a ZIP) and compile it themselves with a C++26 
 compiler.
 
 Funge98 files can be run from the command line by specifying the file name as the first argument:  
@@ -42,10 +39,10 @@ Funge98 files can be run from the command line by specifying the file name as th
 funge98 example.b98
 ```
 
-By default, this interpreter starts in a "sandbox mode", and the execute (`=`) command, along with the input (`i`) and 
-output (`o`) commands when they gain support, are disabled for security. When fingerprint support gets added in the 
-future, any fingerprint command that relates to executing system commands or reading, creating, modifying, or deleting 
-files will also be disabled by default. To enable them for a program, you must use flags when running the Funge98 file:
+By default, this interpreter starts in a "sandbox mode", and the input (`i`), output (`o`), and execute (`=`) commands
+are disabled for security. When fingerprint support gets added in the future, any fingerprint command that relates to 
+executing system commands or reading, creating, modifying, or deleting files will also be disabled by default. To enable
+them for a program, you must use flags when running the Funge98 file:
 - To enable `i` and related fingerprint instructions (anything that can read files or folders), use `--read`, `-r`, or 
   `-i`.
 - To enable `o` and related fingerprint instructions (anything that can create, modify, or delete files or folders), use
