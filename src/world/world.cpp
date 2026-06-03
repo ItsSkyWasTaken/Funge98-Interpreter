@@ -373,18 +373,34 @@ void FungeWorld::tick(InstructionPointer& ip) {
     if(ip.getPointerState() == PointerState::STRING) {
         if(const char32_t c = get(ip.getLocation()); c == U'"') {
             ip.setPointerState(PointerState::NORMAL);
-        } else {
-            if(c == U' ') {
-                ip.setPointerState(PointerState::STRING_IGNORE_SPACES);
+        } else if (c == U' ') {
+            ip.getStack().push(c);
+
+            char32_t ch = static_cast<uint32_t>(get(ip.getLocation()));
+            while(ch == U' ') {
+                ip.advance(1);
+                ch = static_cast<uint32_t>(get(ip.getLocation()));
+
+                if(!boundsCheck(ip)) {
+                    ip.setDelta(ip.getDelta() * -1);
+                    do {
+                        ip.advance(1);
+                    } while(boundsCheck(ip));
+                    ip.setDelta(ip.getDelta() * -1);
+                }
             }
 
-            ip.getStack().push(c);
-        }
-    } else if(ip.getPointerState() == PointerState::STRING_IGNORE_SPACES) {
-        if(const char32_t c = get(ip.getLocation()); c == U'"') {
-            ip.setPointerState(PointerState::NORMAL);
-        } else if(c != U' ') {
-            ip.setPointerState(PointerState::STRING);
+            ip.setDelta(ip.getDelta() * -1);
+            ip.advance(1);
+            if(!boundsCheck(ip)) {
+                ip.setDelta(ip.getDelta() * -1);
+                do {
+                    ip.advance(1);
+                } while(boundsCheck(ip));
+                ip.setDelta(ip.getDelta() * -1);
+            }
+            ip.setDelta(ip.getDelta() * -1);
+        } else {
             ip.getStack().push(c);
         }
     } else {
