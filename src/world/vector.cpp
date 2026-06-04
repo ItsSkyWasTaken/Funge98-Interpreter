@@ -32,10 +32,8 @@ Vector Vector::random(const int32_t dim) {
     std::mt19937 gen(rd());
     std::uniform_int_distribution d(0, 2 * dim - 1);
     const int r = d(gen);
-
     int32_t coords[3] = {0, 0, 0};
-
-    coords[r / 3] = r % 2 == 0 ? 1 : -1;
+    coords[r / 2] = r % 2 == 0 ? 1 : -1;
 
     switch(dim) {
         case 1:
