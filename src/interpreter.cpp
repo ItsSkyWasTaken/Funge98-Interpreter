@@ -77,7 +77,6 @@ int main(const int argc, char** argv) {
     int dim = 0;
     bool argFlag = false;
     std::vector<std::u32string> args;
-    std::vector<std::u32string> envars;
     args.push_back(Strings::fromUtf8(argv[1]));
 
     for(int i = 2; i < argc; i++) {
@@ -126,7 +125,7 @@ int main(const int argc, char** argv) {
     }
 
     for(size_t i = 0; environ[i] != nullptr; i++) {
-        envars.push_back(Strings::fromUtf8(environ[i]));
+        w.passEnvar(Strings::fromUtf8(environ[i]));
     }
 
     InstructionSet::load(w);

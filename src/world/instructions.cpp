@@ -117,9 +117,9 @@ void InstructionSet::load(FungeWorld& w) {
     commands[U','] = [](const InstructionPointer& ip) {
         const char32_t c = ip.getStack().popChar();
         const std::u32string s(1, c);
-        std::cout << Strings::toUtf8(s) << std::flush;
+        std::cout << Strings::toUtf8(s);
 
-        // Check ANSI status, to determine how to update the cursor.
+        // Check ANSI status to determine how to update the cursor.
         switch(ansiFlag) {
             // If an ANSI code is active:
             case 2:
@@ -492,7 +492,7 @@ void InstructionSet::load(FungeWorld& w) {
         file.close();
         std::u32string contents = Strings::fromUtf8(buffer);
 
-        const Vector start = stack.popVector(world->dimensions);
+        const Vector low = stack.popVector(world->dimensions), start = low + ip.getOffset();
         Vector cursor = start;
 
         // Binary mode (same behavior across all 3 sub-languages)
@@ -509,8 +509,8 @@ void InstructionSet::load(FungeWorld& w) {
             world->low = {std::min(world->low.getX(), start.getX()), world->low.getY(), world->low.getZ()};
             world->high = {std::max(world->high.getX(), upperBound.getX()), world->high.getY(), world->high.getZ()};
 
-            stack.push(start);
             stack.push(size);
+            stack.push(low);
             return true;
         }
 
@@ -532,12 +532,12 @@ void InstructionSet::load(FungeWorld& w) {
                 }
             }
 
-            const Vector upperBound = cursor + Vector(1), size = upperBound - start;
+            const auto upperBound = cursor + Vector(1), size = upperBound - start - Vector(1);
             world->low = {std::min(world->low.getX(), start.getX())};
             world->high = {std::max(world->high.getX(), upperBound.getX())};
 
-            stack.push(start);
             stack.push(size);
+            stack.push(low);
             return true;
         }
 
@@ -569,12 +569,12 @@ void InstructionSet::load(FungeWorld& w) {
                 }
             }
 
-            const auto upperBound = Vector(maxX, cursor.getY()), size = upperBound - start;
+            const auto upperBound = Vector(maxX, cursor.getY()), size = upperBound - start - Vector(1, 1);
             world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY())};
             world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY())};
 
-            stack.push(start);
             stack.push(size);
+            stack.push(low);
             return true;
         }
 
@@ -613,12 +613,12 @@ void InstructionSet::load(FungeWorld& w) {
             cursor = {start.getX(), start.getY(), cursor.getZ() + 1};
         }
 
-        const auto upperBound = Vector(maxX, maxY, cursor.getZ()), size = upperBound - start;
+        const auto upperBound = Vector(maxX, maxY, cursor.getZ()), size = upperBound - start - Vector(1, 1, 1);
         world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY()), std::min(world->low.getZ(), start.getZ())};
         world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY()), std::max(world->high.getZ(), upperBound.getZ())};
 
-        stack.push(start);
         stack.push(size);
+        stack.push(low);
         return true;
     };
 
@@ -734,9 +734,9 @@ void InstructionSet::load(FungeWorld& w) {
         Stack& stack = ip.getStack();
 
         const std::u32string u32filename = stack.popString();
-        const std::filesystem::path filePath = Strings::toUtf8(u32filename), parentPath = filePath.parent_path();
+        const std::filesystem::path filePath = Strings::toUtf8(u32filename);
 
-        if(!parentPath.empty() && !std::filesystem::exists(parentPath)) {
+        if(const std::filesystem::path parentPath = filePath.parent_path(); !parentPath.empty() && !std::filesystem::exists(parentPath)) {
             std::error_code ec;
             std::filesystem::create_directories(parentPath, ec);
             if(ec) {
@@ -752,15 +752,15 @@ void InstructionSet::load(FungeWorld& w) {
         }
 
         const int32_t flags = stack.pop();
-        const Vector size = stack.popVector(world->dimensions);
-        const Vector origin = stack.popVector(world->dimensions);
+        const Vector origin = stack.popVector(world->dimensions) + ip.getOffset();
+        const Vector size = stack.popVector(world->dimensions) + Vector(1, 1, 1);
 
         std::u32string contents;
 
         switch(world->dimensions) {
             case 1:
                 contents.reserve(size.getX());
-                for(int x = 0; x < size.getX(); x++) {
+                for(int x = 0; x <= size.getX(); x++) {
                     char32_t c = world->get(origin + Vector(x));
 
                     if(flags & 1) {
@@ -1025,6 +1025,7 @@ void InstructionSet::load(FungeWorld& w) {
 
         // Push arguments onto the stack as null-terminated strings; the end is terminated by another null.
         stack.push(0);
+        stack.push(0);
         for(const std::u32string& arg : world->args | std::views::reverse) {
             stack.push(arg);
         }
@@ -1095,13 +1096,11 @@ void InstructionSet::load(FungeWorld& w) {
             return true;
         }
 
-        const int pushedCells = ip.stackSizes()[0] - sizes[0];
+        if(const int pushedCells = ip.stackSizes()[sizes.size() - 1] - sizes[sizes.size() - 1]; c < pushedCells) {
+            for(int _ = 0; _ < c - 1; _++) {
+                stack.pop();
+            }
 
-        for(int _ = 0; _ < c - 1; _++) {
-            stack.pop();
-        }
-
-        if(c < pushedCells) {
             const int32_t temp = stack.pop();
 
             for(int _ = c; _ < pushedCells; _++) {
@@ -1109,6 +1108,24 @@ void InstructionSet::load(FungeWorld& w) {
             }
 
             stack.push(temp);
+        } else {
+            for(int _ = 0; _ < pushedCells; _++) {
+                stack.pop();
+            }
+
+            std::stack<int32_t> temp;
+            for(int _ = pushedCells; _ < c; _++) {
+                temp.push(stack.pop());
+            }
+
+            const int32_t val = stack.pop();
+            stack.push(val);
+            while(!temp.empty()) {
+                stack.push(temp.top());
+                temp.pop();
+            }
+
+            stack.push(val);
         }
 
         return true;
