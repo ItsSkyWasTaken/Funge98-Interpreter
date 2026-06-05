@@ -20,8 +20,6 @@
     #else
         constexpr std::u32string NEWLINE = "\r";
     #endif
-#elif defined(__linux__) || defined(__unix__)
-    constexpr std::u32string NEWLINE = "\n";
 #else
     constexpr std::u32string NEWLINE = "\n";
 #endif
@@ -1086,7 +1084,7 @@ void InstructionSet::load(FungeWorld& w) {
             return true;
         }
 
-        if(const int pushedCells = ip.stackSizes()[sizes.size() - 1] - sizes[sizes.size() - 1]; c < pushedCells) {
+        if(const int pushedCells = ip.stackSizes()[sizes.size() - 1] - sizes[sizes.size() - 1]; c <= pushedCells) {
             for(int _ = 0; _ < c - 1; _++) {
                 stack.pop();
             }
@@ -1104,7 +1102,7 @@ void InstructionSet::load(FungeWorld& w) {
             }
 
             std::stack<int32_t> temp;
-            for(int _ = pushedCells; _ < c; _++) {
+            for(int _ = pushedCells; _ < c - 1; _++) {
                 temp.push(stack.pop());
             }
 
