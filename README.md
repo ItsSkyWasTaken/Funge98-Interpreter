@@ -2,16 +2,19 @@
 
 This program is yet another Funge98 interpreter, this time written in C++.
 
-I've learned C++ just under a year ago but haven't really gotten to do much with it since then. Then later, I came 
+I started learning C++ just under a year ago but haven't really gotten to do much with it since then. Then later, I came
 across the concept of esoteric programming languages, and I felt compelled to write an interpreter for one, so here we 
 are!
 
+More information on Funge98 can be found in the
+[Funge-98 Final Specification](https://github.com/catseye/Funge-98/blob/master/doc/funge98.markdown), which details the
+specifications that should ideally apply across all interpreters. Additionally, details on Funge98 may be found 
+[here](docs/funge98-overview.md), including interpreter-specific specifications that may have arisen due to ambiguity 
+from the source specifications (from either the base language or fingerprints).
+
 ## Interpreter Statistics
 
-This interpreter is still quite new (it's only a few weeks old), and not to mention it's my first major project in C++; 
-as such, it is unstable and will undergo many rapid changes in the near future. A few features are missing and others 
-are inconsistent with the standard Funge98 specification, which I plan to sort out as I explore both C++ and Funge98 
-more. As such, some important details about this interpreter in its current state are as follows:
+This interpreter is still a WIP. Here are the instructions that are still to be implemented:
 
 - Missing instructions (WIP): `(`, and `)` (and by extension, all uppercase letters)
 
@@ -58,9 +61,10 @@ funge98 example.b98 -e -r
 
 Additionally, this interpreter was set up to automatically detect the dimensions of the supplied file and load it as a
 Unefunge, Befunge, or Trefunge program. Any file that has only one line is loaded as a Unefunge program, any file that 
-has a line with `\f` will be loaded as a Trefunge program, and any file that does not fit either will be loaded as a
-Befunge program. The file extension is not considered. To override the default, use `--dim=VALUE`. This flag may also 
-appear in any order alongside the permission flags, but it must also appear after the Funge98 file:  
+has a form feed character, or a line with `\f` (and nothing else, including whitespace), will be loaded as a Trefunge 
+program, and any file that does not fit either will be loaded as a Befunge program. The file extension is not 
+considered. To override the default, use `--dim=VALUE`. This flag may also appear in any order alongside the permission 
+flags, but it must also appear after the Funge98 file:  
 ```
 funge98 example.b98 -r --dim=3
 ```

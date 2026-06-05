@@ -127,15 +127,15 @@ class FungeWorld {
         Vector high;
 
         /// Whether writing files via the @code o@endcode command or any similar commands from fingerprints is allowed.
-        /// Attempts to write files while this is disabled will result in a pointer reflect instead.
+        /// Attempts to write files while this is disabled will result in a pointer reflection instead.
         bool write;
 
         /// Whether reading files via the @code i@endcode command or any similar commands from fingerprints is allowed.
-        /// Attempts to read files while this is disabled will result in a pointer reflect instead.
+        /// Attempts to read files while this is disabled will result in a pointer reflection instead.
         bool read;
 
         /// Whether executing system commands via the @code =@endcode command or any similar commands from fingerprints
-        /// is allowed. Attempts to execute commands while this is disabled will result in a pointer reflect instead.
+        /// is allowed. Attempts to execute commands while this is disabled will result in a pointer reflection instead.
         bool execute;
 
         /// A map of all loaded chunks in this Funge world. Each chunk has 4096 characters (16kB). 2D chunks are 64×64

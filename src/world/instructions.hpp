@@ -37,7 +37,7 @@ class InstructionSet {
     private:
         /// A map of all the commands available. Commands take a reference of the instruction pointer that executed them
         /// as their sole parameter, and they return a boolean indicating their success status. An unsuccessful
-        /// execution triggers a pointer reflect.
+        /// execution triggers a pointer reflection.
         static std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> commands;
 
         /// A pointer to the world.
