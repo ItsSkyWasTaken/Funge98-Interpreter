@@ -45,12 +45,12 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
                 l++;
             }
 
-            maxY = std::max(maxY, l + 1);
+            maxY = std::max(maxY, l);
             l = 0;
             p++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p + 1));
+        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p));
     }
 
     std::u32string& plane = planes[0];
@@ -73,7 +73,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
 
         for(const auto& line : lines) {
             if(line == U"\\f") {
-                maxY = std::max(maxY, l + 1);
+                maxY = std::max(maxY, l);
                 l = 0;
                 p++;
                 continue;
@@ -90,7 +90,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             l++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p + 1));
+        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p));
     }
 
     // Befunge
@@ -126,23 +126,13 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
 
 FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
     std::unordered_map<Vector, std::u32string> chunks;
-    std::vector<std::u32string> planes;
-    std::string planeString;
-    while(std::getline(file, planeString, '\f')) {
-        planes.push_back(Strings::fromUtf8(planeString));
-    }
 
     // Unefunge
     if(dim == 1) {
         std::u32string program;
-        for(const auto& plane : planes) {
-            std::basic_stringstream<char32_t> stream(plane);
-            std::u32string l;
-            while(Strings::getLine(stream, l)) {
-                if(l != U"\\f") {
-                    program.append(l);
-                }
-            }
+        std::string line;
+        while(Strings::getLine(file, line)) {
+            program.append(Strings::fromUtf8(line));
         }
 
         for(size_t i = 0; i < program.length(); i += 4096) {
@@ -157,36 +147,34 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
     // Befunge
     if(dim == 2) {
         std::vector<std::u32string> lines;
-        for(const auto& plane : planes) {
-            std::basic_stringstream<char32_t> stream(plane);
-            std::u32string l;
-            while(Strings::getLine(stream, l)) {
-                if(l != U"\\f") {
-                    lines.push_back(l);
-                }
-            }
-        }
+        std::string line;
 
         int l = 0;
         int32_t maxX = 0;
-
-        for(const auto& line : lines) {
+        while(Strings::getLine(file, line)) {
+            const std::u32string line32 = Strings::fromUtf8(line);
             for(size_t i = 0; i < line.length(); i += 64) {
                 const Vector chunk = {static_cast<int32_t>(i / 64), l / 64};
                 chunks.try_emplace(chunk, 4096, U' ');
-                const std::u32string sub = line.substr(i, 64);
+                const std::u32string sub = line32.substr(i, 64);
                 chunks[chunk].replace(l % 64 * 64, sub.size(), sub);
             }
 
-            maxX = std::max(maxX, static_cast<int32_t>(line.length()));
+            maxX = std::max(maxX, static_cast<int32_t>(line32.length()));
             l++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, l + 1));
+        return new FungeWorld(std::move(chunks), Vector(maxX, l));
     }
 
     // Trefunge
     assert(dim == 3);
+    std::vector<std::u32string> planes;
+    std::string planeString;
+    while(std::getline(file, planeString, '\f')) {
+        planes.push_back(Strings::fromUtf8(planeString));
+    }
+
     int p = 0, l = 0;
     int32_t maxX = 0, maxY = 0;
     for(const auto& plane : planes) {
@@ -212,12 +200,12 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
             l++;
         }
 
-        maxY = std::max(maxY, l + 1);
+        maxY = std::max(maxY, l);
         l = 0;
         p++;
     }
 
-    return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p + 1));
+    return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p));
 }
 
 char32_t FungeWorld::get(const Vector& location) {

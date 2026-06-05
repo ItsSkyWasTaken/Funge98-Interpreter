@@ -11,6 +11,21 @@
 
 #include "../strings.hpp"
 
+#if defined(_WIN32) || defined(_WIN64)
+    constexpr std::u32string NEWLINE = U"\r\n";
+#elif defined(__APPLE__)
+    #include <TargetConditionals.h>
+    #if defined(TARGET_OS_MAC) && TARGET_OS_MAC
+        constexpr std::u32string NEWLINE = "\n";
+    #else
+        constexpr std::u32string NEWLINE = "\r";
+    #endif
+#elif defined(__linux__) || defined(__unix__)
+    constexpr std::u32string NEWLINE = "\n";
+#else
+    constexpr std::u32string NEWLINE = "\n";
+#endif
+
 std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> InstructionSet::commands;
 FungeWorld* InstructionSet::world = nullptr;
 int InstructionSet::pointerPosition = 0;
@@ -502,12 +517,12 @@ void InstructionSet::load(FungeWorld& w) {
                     world->put(cursor, c);
                 }
 
-                cursor += {1, 1, 1};
+                cursor += {1, 0, 0};
             }
 
-            const Vector upperBound = cursor + Vector(1, 0, 0), size = upperBound - start;
+            const Vector size = cursor - start;
             world->low = {std::min(world->low.getX(), start.getX()), world->low.getY(), world->low.getZ()};
-            world->high = {std::max(world->high.getX(), upperBound.getX()), world->high.getY(), world->high.getZ()};
+            world->high = {std::max(world->high.getX(), cursor.getX()), world->high.getY(), world->high.getZ()};
 
             stack.push(size);
             stack.push(low);
@@ -519,10 +534,6 @@ void InstructionSet::load(FungeWorld& w) {
             std::basic_stringstream<char32_t> contentStream(contents);
             std::u32string line;
             while(Strings::getLine(contentStream, line)) {
-                if(line == U"\\f") {
-                    continue;
-                }
-
                 for(const auto& c : line) {
                     if(c != U' ') {
                         world->put(cursor, c);
@@ -532,9 +543,9 @@ void InstructionSet::load(FungeWorld& w) {
                 }
             }
 
-            const auto upperBound = cursor + Vector(1), size = upperBound - start - Vector(1);
+            const auto size = cursor - start;
             world->low = {std::min(world->low.getX(), start.getX())};
-            world->high = {std::max(world->high.getX(), upperBound.getX())};
+            world->high = {std::max(world->high.getX(), cursor.getX())};
 
             stack.push(size);
             stack.push(low);
@@ -544,32 +555,23 @@ void InstructionSet::load(FungeWorld& w) {
         // Befunge
         if(world->dimensions == 2) {
             std::basic_stringstream<char32_t> contentStream(contents);
-            std::u32string plane;
+            std::u32string line;
             int32_t maxX = 0;
 
-            while(std::getline(contentStream, plane, U'\f')) {
-                std::basic_stringstream<char32_t> planeStream(plane);
-                std::u32string line;
-
-                while(Strings::getLine(planeStream, line)) {
-                    if(line == U"\\f") {
-                        continue;
+            while(Strings::getLine(contentStream, line)) {
+                for(const auto& c : line) {
+                    if(c != U' ') {
+                        world->put(cursor, c);
                     }
 
-                    for(const auto& c : line) {
-                        if(c != U' ') {
-                            world->put(cursor, c);
-                        }
-
-                        cursor += {1, 0};
-                    }
-
-                    maxX = std::max(maxX, cursor.getX() + 1);
-                    cursor = {start.getX(), cursor.getY() + 1};
+                    cursor += {1, 0};
                 }
+
+                maxX = std::max(maxX, cursor.getX());
+                cursor = {start.getX(), cursor.getY() + 1};
             }
 
-            const auto upperBound = Vector(maxX, cursor.getY()), size = upperBound - start - Vector(1, 1);
+            const auto upperBound = Vector(maxX, cursor.getY()), size = upperBound - start;
             world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY())};
             world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY())};
 
@@ -604,16 +606,16 @@ void InstructionSet::load(FungeWorld& w) {
                     cursor += {1, 0, 0};
                 }
 
-                maxX = std::max(maxX, cursor.getX() + 1);
+                maxX = std::max(maxX, cursor.getX());
                 cursor = {start.getX(), cursor.getY() + 1, cursor.getZ()};
             }
 
-            maxX = std::max(maxX, cursor.getX() + 1);
+            maxX = std::max(maxX, cursor.getX());
             maxY = std::max(maxY, cursor.getY());
             cursor = {start.getX(), start.getY(), cursor.getZ() + 1};
         }
 
-        const auto upperBound = Vector(maxX, maxY, cursor.getZ()), size = upperBound - start - Vector(1, 1, 1);
+        const auto upperBound = Vector(maxX, maxY, cursor.getZ()), size = upperBound - start;
         world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY()), std::min(world->low.getZ(), start.getZ())};
         world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY()), std::max(world->high.getZ(), upperBound.getZ())};
 
@@ -745,7 +747,7 @@ void InstructionSet::load(FungeWorld& w) {
             }
         }
 
-        std::ofstream outFile(filePath);
+        std::ofstream outFile(filePath, std::ios::binary);
         if(!outFile.is_open()) {
             stack.push(u32filename);
             return false;
@@ -753,7 +755,7 @@ void InstructionSet::load(FungeWorld& w) {
 
         const int32_t flags = stack.pop();
         const Vector origin = stack.popVector(world->dimensions) + ip.getOffset();
-        const Vector size = stack.popVector(world->dimensions) + Vector(1, 1, 1);
+        const Vector size = stack.popVector(world->dimensions);
 
         std::u32string contents;
 
@@ -764,13 +766,7 @@ void InstructionSet::load(FungeWorld& w) {
                     char32_t c = world->get(origin + Vector(x));
 
                     if(flags & 1) {
-                        if(c == U'\f') {
-                            if(size_t p = contents.find_last_not_of(U" \n\r"); p != std::u32string::npos) {
-                                contents.erase(p + 1);
-                            } else {
-                                contents.clear();
-                            }
-                        } else if(c == U'\n') {
+                        if(c == U'\n') {
                             if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
                                 contents.erase(p + 1);
                             } else {
@@ -793,7 +789,7 @@ void InstructionSet::load(FungeWorld& w) {
                 }
 
                 if(flags & 1) {
-                    if(size_t p = contents.find_last_not_of(U" \n\r\f"); p != std::u32string::npos) {
+                    if(size_t p = contents.find_last_not_of(U" \n\r"); p != std::u32string::npos) {
                         contents.erase(p + 1);
                     } else {
                         contents.clear();
@@ -808,13 +804,7 @@ void InstructionSet::load(FungeWorld& w) {
                         char32_t c = world->get(origin + Vector(x, y));
 
                         if(flags & 1) {
-                            if(c == U'\f') {
-                                if(size_t p = contents.find_last_not_of(U" \n\r"); p != std::u32string::npos) {
-                                    contents.erase(p + 1);
-                                } else {
-                                    contents.clear();
-                                }
-                            } else if(c == U'\n') {
+                            if(c == U'\n') {
                                 if(size_t p = contents.find_last_not_of(U" "); p != std::u32string::npos) {
                                     contents.erase(p + 1);
                                 } else {
@@ -844,7 +834,7 @@ void InstructionSet::load(FungeWorld& w) {
                         }
                     }
 
-                    contents.push_back(U'\n');
+                    contents.append(NEWLINE);
                 }
 
                 if(flags & 1) {
@@ -902,7 +892,7 @@ void InstructionSet::load(FungeWorld& w) {
                             }
                         }
 
-                        contents.push_back(U'\n');
+                        contents.append(NEWLINE);
                     }
 
                     if(flags & 1) {

@@ -4,6 +4,40 @@
 #include <string>
 
 namespace Strings {
+    /// Grabs a line from a file, taking into account all 3 possible line delimiters.
+    ///
+    /// @param stream  the file stream to read from
+    /// @param s       the string to assign the line to
+    ///
+    /// @return a boolean determining if there was a line to read
+    inline bool getLine(std::ifstream& stream, std::string& s) {
+        s.clear();
+        char c;
+
+        if(!stream.get(c)) {
+            return false;
+        }
+
+        while(true) {
+            if (c == '\n') {
+                return true;
+            }
+
+            if (c == '\r') {
+                if (stream.peek() == '\n') {
+                    stream.get();
+                }
+                return true;
+            }
+
+            s.push_back(c);
+
+            if(!stream.get(c)) {
+                return true;
+            }
+        }
+    }
+
     /// Grabs a line from a UTF-32 encoded string, taking into account all 3 possible line delimiters.
     ///
     /// @param stream  the string stream to read from
