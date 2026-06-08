@@ -50,8 +50,8 @@ lexicographically, or positive if `b` comes first.
 This is equivalent to a call to `a.compare(b)` in C++, or `a.compareTo(b)` in Java.
 
 **Pops:**
-- `b: string` — the first string to compare
-- `a: string` — the second string to compare
+- `b: string` — the bottom string
+- `a: string` — the top string
 
 **Pushes:**
 - `r: string` — the comparison result
