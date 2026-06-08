@@ -1,8 +1,14 @@
 #ifndef FUNGE98_POINTER_HPP
 #define FUNGE98_POINTER_HPP
 
-#include "stack.hpp"
+#include <array>
+#include <memory>
+#include <vector>
+
 #include "vector.hpp"
+
+class Fingerprint;
+class Stack;
 
 /// An enum of different possible states of the pointer. These states dictate what happens when a pointer passes over an
 /// instruction in the Funge world.
@@ -29,19 +35,6 @@ class InstructionPointer {
         /// @param dimensions  the number of dimensions in the world
         explicit InstructionPointer(int32_t dimensions);
 
-        /// Creates a new instruction pointer at the specified location facing east, with a storage offset at the
-        /// origin and an empty stack.
-        ///
-        /// @param location  the pointer's location
-        explicit InstructionPointer(const Vector& location);
-
-        /// Creates a new instruction pointer at the specified location and facing the specified direction, with a
-        /// storage offset at the origin and an empty stack.
-        ///
-        /// @param location  the pointer's location
-        /// @param delta     the direction this pointer is facing
-        InstructionPointer(const Vector& location, const Vector& delta);
-
         /// Creates a new instruction pointer at the specified location and facing the specified direction, with the
         /// specified storage offset.
         ///
@@ -49,14 +42,14 @@ class InstructionPointer {
         /// @param delta     the direction this pointer is facing
         /// @param offset    the pointer's storage offset
         /// @param stack     the stack associated with this pointer
-        InstructionPointer(const Vector& location, const Vector& delta, const Vector& offset, const Stack* stack);
+        InstructionPointer(const Vector& location, const Vector& delta, const Vector& offset, std::unique_ptr<Stack> stack);
 
         /// Splits this instruction pointer, creating a new one.
         ///
         /// The new instruction pointer is an exact clone of the original, but with a reflected delta.
         ///
         /// @return  a pointer to the newly created instruction pointer
-        [[nodiscard]] InstructionPointer* split() const;
+        [[nodiscard]] std::unique_ptr<InstructionPointer> split() const;
 
         /// Advances this pointer one step according to its delta vector.
         void advance(int steps);
@@ -121,18 +114,42 @@ class InstructionPointer {
         /// Ends the last started block.
         void endBlock();
 
+        /// Loads a fingerprint to this instruction pointer.
+        ///
+        /// @param fingerprint  the ID of the fingerprint to load
+        ///
+        /// @return  a boolean determining if the fingerprint exists and was successfully loaded
+        bool loadFingerprint(int32_t fingerprint);
+
+        /// Unloads a fingerprint from this instruction pointer.
+        ///
+        /// @param fingerprint  the ID of the fingerprint to load
+        ///
+        /// @return  a boolean determining if the fingerprint exists and was successfully loaded
+        bool unloadFingerprint(int32_t fingerprint);
+
+        /// Attempts to execute an overloaded instruction based on the loaded fingerprints.
+        ///
+        /// @param instruction  the instruction to attempt
+        ///
+        /// @return  whether the execution was successful
+        bool execute(char32_t instruction);
+
         /// Gets the sizes of each stack, starting from the TOSS and ending with the BOSS.
         [[nodiscard]] std::vector<int32_t> stackSizes() const;
 
         /// The unique id of this pointer.
         const uint32_t id;
 
-        /// Destructor. Deletes the associated stack.
-        ~InstructionPointer();
-
     private:
         /// The ID of the next pointer.
         static uint32_t nextId;
+
+        /// A list of loaded fingerprints.
+        std::vector<std::pair<int32_t, std::shared_ptr<Fingerprint>>> loadedFingerprints;
+
+        /// An array of active fingerprints.
+        std::array<std::vector<std::weak_ptr<Fingerprint>>, 26> activeFingerprints;
 
         /// The current position of this instruction pointer.
         Vector location;
@@ -144,7 +161,7 @@ class InstructionPointer {
         Vector storageOffset;
 
         /// The stack associated with this pointer.
-        Stack* const stack;
+        const std::unique_ptr<Stack> stack;
 
         /// The current mode that this instruction pointer is in.
         PointerState mode;

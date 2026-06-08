@@ -1,9 +1,19 @@
 # Fingerprints
-    *This is a planned feature that is yet to be implemented on this interpreter.*
 
 Fingerprints are similar to modules in other programming languages. They can be loaded ("imported") to allow the IP to 
-access extra instructions. Fingerprints are loaded with `(` and unloaded with `)`. Each IP has its own set of imported 
-fingerprints, which is cloned whenever `t` is executed.
+access extra instructions represented by one or more of the uppercase letters from A to Z. Instructions that read or 
+write to files or execute system commands still require their respective permission flags enabled when the program 
+starts. Fingerprints are loaded with `(` and unloaded with `)`. Each IP has its own set of imported fingerprints, which 
+is cloned whenever `t` is executed.
 
-When this interpreter gets support for fingerprints, a list of them will appear here, along with links to their 
-respective pages, detailing the instructions provided by each fingerprint.
+Supported fingerprints are baked directly into this interpreter in native C++ code, allowing faster execution times and 
+better portability than Minifunge implementations. This interpreter will gradually gain more support for the major 
+fingerprints provided by RCS, RC/Funge, and Cats-Eye. Custom fingerprints can be emulated on this interpreter by using 
+the SUBR (subroutine) fingerprint when it gains support.
+
+Below is a current list of supported fingerprints. The functions that each fingerprint offers can be found in each of 
+their respective pages.
+
+| Fingerprint ID | String Name | Origin | Description                    |
+|:--------------:|:-----------:|:------:|:-------------------------------|
+|   0x5354524E   |    STRN     |  RCS   | Functions for string handling. |

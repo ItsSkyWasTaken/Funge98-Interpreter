@@ -3,8 +3,14 @@ project(Funge98)
 
 set(CMAKE_CXX_STANDARD 26)
 
+if(WIN32)
+    add_link_options("-static-libgcc" "-static-libstdc++")
+endif()
+
+add_link_options("-Wl,--allow-multiple-definition")
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
+    add_link_options("-s")
 endif()
 
 add_executable(funge98 src/interpreter.cpp
@@ -19,4 +25,8 @@ add_executable(funge98 src/interpreter.cpp
         src/world/instructions.hpp
         src/world/instructions.cpp
         src/strings.hpp
+        src/fingerprints/fingerprint.cpp
+        src/fingerprints/fingerprint.hpp
+        src/fingerprints/strn.hpp
+        src/fingerprints/strn.cpp
 )

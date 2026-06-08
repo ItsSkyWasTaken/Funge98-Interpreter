@@ -8,6 +8,7 @@
     <inspection_tool class="CppDFATimeOver" enabled="false" level="HINT" enabled_by_default="false" />
     <inspection_tool class="CppDefaultCaseNotHandledInSwitchStatement" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppJoinDeclarationAndAssignment" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="CppMemberFunctionMayBeConst" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="CppMemberInitializersOrder" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="CppNonExplicitConvertingConstructor" enabled="false" level="HINT" enabled_by_default="false" />
     <inspection_tool class="GrazieInspection" enabled="true" level="INFORMATION" enabled_by_default="true" />

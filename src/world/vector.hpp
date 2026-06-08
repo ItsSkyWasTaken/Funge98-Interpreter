@@ -1,6 +1,7 @@
 #ifndef FUNGE98_VECTOR_HPP
 #define FUNGE98_VECTOR_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 

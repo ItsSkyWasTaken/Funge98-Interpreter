@@ -27,7 +27,7 @@ These are the details that are received as a result of the GetSysInfo (`y`) comm
 - I/O: **buffered**
 - Cell size: **32-bit**
 - Handprint: **1230198612** (`0x49535754`)
-- Version: v0.2.2 (`202`)
+- Version: v0.3.0 (`300`)
 - Operating paradigm: Equivalent to C-language `system()`
 
 ## Running a Funge98 File

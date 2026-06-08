@@ -1,29 +1,99 @@
 #include "pointer.hpp"
 
 #include <cassert>
+#include <ranges>
 
+#include "../fingerprints/fingerprint.hpp"
+#include "stack.hpp"
 #include "vector.hpp"
 
 uint32_t InstructionPointer::nextId = 0;
 
 InstructionPointer::InstructionPointer(const int32_t dimensions):
-        InstructionPointer(Vector::origin(dimensions), Vector::east(dimensions)) {}
+        InstructionPointer(Vector::origin(dimensions), Vector::east(dimensions), Vector::origin(dimensions), std::make_unique<Stack>()) {}
 
-InstructionPointer::InstructionPointer(const Vector& location):
-        InstructionPointer(location, Vector::east(location.dimensions)) {}
+InstructionPointer::InstructionPointer(const Vector& location, const Vector& delta, const Vector& offset, std::unique_ptr<Stack> stack):
+        location(location), delta(delta), storageOffset(offset), stack(std::move(stack)), mode(PointerState::NORMAL), id(nextId++) {}
 
-InstructionPointer::InstructionPointer(const Vector& location, const Vector& delta):
-        location(location), delta(delta), storageOffset(Vector::origin(location.dimensions)), stack(new Stack()), mode(PointerState::NORMAL), id(nextId++) {}
-
-InstructionPointer::InstructionPointer(const Vector& location, const Vector& delta, const Vector& offset, const Stack* stack):
-        location(location), delta(delta), storageOffset(offset), stack(new Stack(*stack)), mode(PointerState::NORMAL), id(nextId++) {}
-
-InstructionPointer* InstructionPointer::split() const {
-    return new InstructionPointer(location, -delta, storageOffset, stack);
+std::unique_ptr<InstructionPointer> InstructionPointer::split() const {
+    return std::make_unique<InstructionPointer>(location, -delta, storageOffset, std::make_unique<Stack>(*stack));
 }
 
 void InstructionPointer::advance(const int steps) {
     location += delta * steps;
+}
+
+bool InstructionPointer::loadFingerprint(const int32_t fingerprint) {
+    const auto it = std::ranges::find(loadedFingerprints, fingerprint, &std::pair<int, std::shared_ptr<Fingerprint>>::first);
+    std::shared_ptr<Fingerprint> fp;
+
+    if(it != loadedFingerprints.end()) {
+        fp = it->second;
+    } else {
+        fp = Fingerprint::load(fingerprint);
+        if(!fp) {
+            return false;
+        }
+
+        loadedFingerprints.emplace_back(fingerprint, fp);
+    }
+
+    for(const char32_t c : fp->getImplementedInstructions()) {
+        activeFingerprints[c - U'A'].push_back(fp);
+    }
+
+    return true;
+}
+
+bool InstructionPointer::unloadFingerprint(const int32_t fingerprint) {
+    const auto it = std::ranges::find(loadedFingerprints, fingerprint, &std::pair<int, std::shared_ptr<Fingerprint>>::first);
+    std::shared_ptr<Fingerprint> fp;
+
+    if(it != loadedFingerprints.end()) {
+        fp = it->second;
+    } else {
+        fp = Fingerprint::load(fingerprint);
+        if(!fp) {
+            return false;
+        }
+    }
+
+    for(const char32_t c : fp->getImplementedInstructions()) {
+        std::vector<std::weak_ptr<Fingerprint>>& semantics = activeFingerprints.at(c - U'A');
+
+        const auto inst = std::find_if(semantics.rbegin(), semantics.rend(), [&fp](const std::weak_ptr<Fingerprint>& w_ptr) {
+            const auto locked = w_ptr.lock();
+            return locked && locked == fp;
+        });
+
+        if(inst != semantics.rend()) {
+            semantics.erase(std::next(inst).base());
+        }
+    }
+
+    return true;
+}
+
+bool InstructionPointer::execute(const char32_t instruction) {
+    assert(instruction >= U'A' && instruction <= U'Z');
+
+    auto& semantic = activeFingerprints[instruction - U'A'];
+
+    if(semantic.empty()) {
+        return false;
+    }
+
+    std::erase_if(semantic, [](const std::weak_ptr<Fingerprint>& wp) {
+        return wp.expired();
+    });
+
+    const std::weak_ptr<Fingerprint> fp = semantic[semantic.size() - 1];
+
+    if(const std::shared_ptr<Fingerprint> fp_locked = fp.lock()) {
+        return fp_locked->execute(instruction, *this);
+    }
+
+    return false;
 }
 
 const Vector& InstructionPointer::getLocation() const {
@@ -120,8 +190,4 @@ void InstructionPointer::endBlock() {
     storageOffset = {x, y, z};
 
     stack->collapse(n);
-}
-
-InstructionPointer::~InstructionPointer() {
-    delete stack;
 }

@@ -1,10 +1,13 @@
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "strings.hpp"
+#include "fingerprints/fingerprint.hpp"
 #include "world/instructions.hpp"
 #include "world/world.hpp"
+#include "strings.hpp"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -12,6 +15,7 @@
     #define environ _environ
     UINT originalInCP, originalOutCP;
 
+    /// Sets the console to use UTF-8 instead of ASCII (or whatever else it was set to).
     void setupConsole() {
         originalInCP = GetConsoleCP();
         originalOutCP = GetConsoleOutputCP();
@@ -19,6 +23,7 @@
         SetConsoleOutputCP(CP_UTF8);
     }
 
+    /// Restores the codepoint system the console was using before.
     void restoreConsole() {
         SetConsoleCP(originalInCP);
         SetConsoleOutputCP(originalOutCP);
@@ -31,11 +36,7 @@
     extern char** environ;
 #endif
 
-FungeWorld* world;
-
 void quit(const int code) {
-    delete world;
-
     std::cout << "\n\n\033[0m================================================================\n"
               << " Program has finished running.\n Exit code: " << code << "\n"
               << "================================================================" << std::endl;
@@ -101,6 +102,7 @@ int main(const int argc, char** argv) {
     std::cout << "\n\033[0m================================================================\n"
               << " Loading Funge world..." << std::endl;
 
+    std::shared_ptr<FungeWorld> world;
     std::ifstream file(argv[1]);
     if(file.is_open()) {
         if(dim > 0 && dim < 4) {
@@ -114,21 +116,21 @@ int main(const int argc, char** argv) {
         return 1;
     }
 
-    FungeWorld& w = *world;
     file.close();
 
-    w.setReadEnabled(read);
-    w.setWriteEnabled(write);
-    w.setExecuteEnabled(execute);
+    world->setReadEnabled(read);
+    world->setWriteEnabled(write);
+    world->setExecuteEnabled(execute);
     for(const std::u32string& arg : args) {
-        w.passArg(arg);
+        world->passArg(arg);
     }
 
     for(size_t i = 0; environ[i] != nullptr; i++) {
-        w.passEnvar(Strings::fromUtf8(environ[i]));
+        world->passEnvar(Strings::fromUtf8(environ[i]));
     }
 
-    InstructionSet::load(w);
+    InstructionSet::load(world);
+    Fingerprint::load(world);
 
     #ifdef _WIN32
         setupConsole();
@@ -137,5 +139,5 @@ int main(const int argc, char** argv) {
     std::cout << " Starting!\n"
               << "================================================================\n" << std::endl;
 
-    w.run();
+    world->run();
 }

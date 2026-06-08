@@ -1,15 +1,17 @@
 #include "world.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <filesystem>
 #include <fstream>
-#include <ranges>
-#include <string>
+#include <sstream>
 
-#include "instructions.hpp"
 #include "../strings.hpp"
+#include "instructions.hpp"
+#include "pointer.hpp"
+#include "stack.hpp"
 
-FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
+std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file) {
     std::vector<std::u32string> planes;
     std::string utf8Plane;
     while(std::getline(file, utf8Plane, '\f')) {
@@ -50,7 +52,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             p++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, maxY, p));
     }
 
     std::u32string& plane = planes[0];
@@ -90,7 +92,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             l++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, maxY, p));
     }
 
     // Befunge
@@ -110,7 +112,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
             l++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, l + 1));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, l + 1));
     }
 
     // Unefunge
@@ -121,10 +123,10 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file) {
         chunks.insert_or_assign(chunk, chunkString.append(std::max(0, static_cast<int32_t>(chunkString.length() - 4096)), U' '));
     }
 
-    return new FungeWorld(std::move(chunks), Vector(line.length()));
+    return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(line.length()));
 }
 
-FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
+std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file, const int dim) {
     std::unordered_map<Vector, std::u32string> chunks;
 
     // Unefunge
@@ -141,7 +143,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
             chunks.insert_or_assign(chunk, chunkString.append(std::max(0, static_cast<int32_t>(chunkString.length() - 4096)), U' '));
         }
 
-        return new FungeWorld(std::move(chunks), Vector(program.length()));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(program.length()));
     }
 
     // Befunge
@@ -164,7 +166,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
             l++;
         }
 
-        return new FungeWorld(std::move(chunks), Vector(maxX, l));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, l));
     }
 
     // Trefunge
@@ -205,7 +207,7 @@ FungeWorld* FungeWorld::fromFile(std::ifstream& file, const int dim) {
         p++;
     }
 
-    return new FungeWorld(std::move(chunks), Vector(maxX, maxY, p));
+    return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, maxY, p));
 }
 
 char32_t FungeWorld::get(const Vector& location) {
@@ -217,6 +219,7 @@ char32_t FungeWorld::get(const Vector& location) {
     return chunk[offset];
 }
 
+// TODO: Shrink world size if the edges are spaced away
 void FungeWorld::put(const Vector& location, const char32_t value) {
     if(location.dimensions > dimensions) {
         return;
@@ -346,22 +349,23 @@ bool FungeWorld::boundsCheck(const Vector& position, const Vector& delta) const 
 }
 
 void FungeWorld::run() {
-    pointers.push(new InstructionPointer(dimensions));
+    pointers.push(std::make_unique<InstructionPointer>(dimensions));
 
     while(!pointers.empty()) {
-        InstructionPointer& ip = *pointers.front();
+        auto ip = std::move(pointers.front());
         pointers.pop();
-        tick(ip);
+        tick(std::move(ip));
     }
 
     quit(0);
 }
 
-void FungeWorld::tick(InstructionPointer& ip) {
+void FungeWorld::tick(std::unique_ptr<InstructionPointer> ip_ptr) {
+    InstructionPointer& ip = *ip_ptr;
     if(ip.getPointerState() == PointerState::STRING) {
         if(const char32_t c = get(ip.getLocation()); c == U'"') {
             ip.setPointerState(PointerState::NORMAL);
-        } else if (c == U' ') {
+        } else if(c == U' ') {
             ip.getStack().push(c);
 
             char32_t ch = static_cast<uint32_t>(get(ip.getLocation()));
@@ -370,6 +374,7 @@ void FungeWorld::tick(InstructionPointer& ip) {
                 ch = static_cast<uint32_t>(get(ip.getLocation()));
 
                 if(!boundsCheck(ip)) {
+                    // TODO: Make this O(1)
                     ip.setDelta(ip.getDelta() * -1);
                     do {
                         ip.advance(1);
@@ -437,9 +442,7 @@ void FungeWorld::tick(InstructionPointer& ip) {
     }
 
     Out:
-    if(ip.getPointerState() == PointerState::EXITING) {
-        delete &ip;
-    } else {
+    if(ip.getPointerState() != PointerState::EXITING) {
         ip.advance(1);
 
         if(!boundsCheck(ip)) {
@@ -448,19 +451,18 @@ void FungeWorld::tick(InstructionPointer& ip) {
                 ip.advance(1);
             } while(boundsCheck(ip));
             ip.setDelta(ip.getDelta() * -1);
+            ip.advance(1);
         }
 
-        pointers.push(&ip);
+        pointers.push(std::move(ip_ptr));
     }
 }
 
-FungeWorld::FungeWorld(std::unordered_map<Vector, std::u32string> chunks, const Vector& high):
-        chunks(std::move(chunks)), dimensions(high.dimensions), low(Vector::origin(high.dimensions)), high(high), write(false), read(false), execute(false) {}
+FungeWorld::FungeWorld(FungeToken, std::unordered_map<Vector, std::u32string> chunks, const Vector& size):
+        chunks(std::move(chunks)), dimensions(size.dimensions), low(Vector::origin(size.dimensions)), high(size), write(false), read(false), execute(false) {}
 
 FungeWorld::~FungeWorld() {
     while(!pointers.empty()) {
-        const InstructionPointer* ip = pointers.front();
         pointers.pop();
-        delete ip;
     }
 }

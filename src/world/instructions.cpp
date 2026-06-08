@@ -8,8 +8,14 @@
 #include <iostream>
 #include <ranges>
 #include <sstream>
+#include <string>
+#include <utility>
 
 #include "../strings.hpp"
+#include "pointer.hpp"
+#include "stack.hpp"
+#include "vector.hpp"
+#include "world.hpp"
 
 #if defined(_WIN32) || defined(_WIN64)
     constexpr std::u32string NEWLINE = U"\r\n";
@@ -24,14 +30,8 @@
     constexpr std::u32string NEWLINE = "\n";
 #endif
 
-std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> InstructionSet::commands;
-FungeWorld* InstructionSet::world = nullptr;
-int InstructionSet::pointerPosition = 0;
-int InstructionSet::ansiFlag = 0;
-int InstructionSet::ansiParameter = 0;
-
-void InstructionSet::load(FungeWorld& w) {
-    world = &w;
+void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
+    world = std::move(w);
     commands.reserve(91);
 
     // Perform boolean inversion on the TOS.
@@ -100,6 +100,38 @@ void InstructionSet::load(FungeWorld& w) {
         ip.advance(1);
         ip.getStack().push(world->get(ip.getLocation()));
         return true;
+    };
+
+    commands[U'('] = [](InstructionPointer& ip) {
+        Stack& stack = ip.getStack();
+        const int32_t n = stack.pop();
+        uint32_t fp = 0;
+
+        for(int i = 0; i < n; i++) {
+            fp *= 256;
+            fp += stack.pop();
+        }
+
+        if(const int32_t id = static_cast<int32_t>(fp); ip.loadFingerprint(id)) {
+            stack.push(id);
+            stack.push(1);
+            return true;
+        }
+
+        return false;
+    };
+
+    commands[U')'] = [](InstructionPointer& ip) {
+        Stack& stack = ip.getStack();
+        const int32_t n = stack.pop();
+        uint32_t fp = 0;
+
+        for(int i = 0; i < n; i++) {
+            fp *= 256;
+            fp += stack.pop();
+        }
+
+        return ip.unloadFingerprint(static_cast<int32_t>(fp));
     };
 
     // Perform multiplication on the top two elements of the stack.
@@ -948,9 +980,9 @@ void InstructionSet::load(FungeWorld& w) {
 
     // Split pointer (concurrent Funge).
     commands[U't'] = [](const InstructionPointer& ip) {
-        InstructionPointer* ip2 = ip.split();
+        std::unique_ptr<InstructionPointer> ip2 = ip.split();
         ip2->advance(1);
-        world->pointers.push(ip2);
+        world->pointers.push(std::move(ip2));
         return true;
     };
 
@@ -1064,8 +1096,8 @@ void InstructionSet::load(FungeWorld& w) {
         // Push Operating Paradigm - equivalent to system() if enabled.
         stack.push(world->canExecute() ? 1 : 0);
 
-        // Push version number - v0.2.2 = 202.
-        stack.push(202);
+        // Push version number - v0.3.0 = 300.
+        stack.push(300);
 
         // Push handprint - ISWT (0x49535754).
         stack.push(0x49535754);
@@ -1199,6 +1231,110 @@ void InstructionSet::load(FungeWorld& w) {
 
         stack.push(a);
         return true;
+    };
+
+    commands[U'A'] = [](InstructionPointer& ip) {
+        return ip.execute(U'A');
+    };
+
+    commands[U'B'] = [](InstructionPointer& ip) {
+        return ip.execute(U'B');
+    };
+
+    commands[U'C'] = [](InstructionPointer& ip) {
+        return ip.execute(U'C');
+    };
+
+    commands[U'D'] = [](InstructionPointer& ip) {
+        return ip.execute(U'D');
+    };
+
+    commands[U'E'] = [](InstructionPointer& ip) {
+        return ip.execute(U'E');
+    };
+
+    commands[U'F'] = [](InstructionPointer& ip) {
+        return ip.execute(U'F');
+    };
+
+    commands[U'G'] = [](InstructionPointer& ip) {
+        return ip.execute(U'G');
+    };
+
+    commands[U'H'] = [](InstructionPointer& ip) {
+        return ip.execute(U'H');
+    };
+
+    commands[U'I'] = [](InstructionPointer& ip) {
+        return ip.execute(U'I');
+    };
+
+    commands[U'J'] = [](InstructionPointer& ip) {
+        return ip.execute(U'J');
+    };
+
+    commands[U'K'] = [](InstructionPointer& ip) {
+        return ip.execute(U'K');
+    };
+
+    commands[U'L'] = [](InstructionPointer& ip) {
+        return ip.execute(U'L');
+    };
+
+    commands[U'M'] = [](InstructionPointer& ip) {
+        return ip.execute(U'M');
+    };
+
+    commands[U'N'] = [](InstructionPointer& ip) {
+        return ip.execute(U'N');
+    };
+
+    commands[U'O'] = [](InstructionPointer& ip) {
+        return ip.execute(U'O');
+    };
+
+    commands[U'P'] = [](InstructionPointer& ip) {
+        return ip.execute(U'P');
+    };
+
+    commands[U'Q'] = [](InstructionPointer& ip) {
+        return ip.execute(U'Q');
+    };
+
+    commands[U'R'] = [](InstructionPointer& ip) {
+        return ip.execute(U'R');
+    };
+
+    commands[U'S'] = [](InstructionPointer& ip) {
+        return ip.execute(U'S');
+    };
+
+    commands[U'T'] = [](InstructionPointer& ip) {
+        return ip.execute(U'T');
+    };
+
+    commands[U'U'] = [](InstructionPointer& ip) {
+        return ip.execute(U'U');
+    };
+
+    commands[U'V'] = [](InstructionPointer& ip) {
+        return ip.execute(U'V');
+    };
+
+    commands[U'W'] = [](InstructionPointer& ip) {
+        return ip.execute(U'W');
+    };
+
+    commands[U'X'] = [](InstructionPointer& ip) {
+        return ip.execute(U'X');
+    };
+
+    commands[U'Y'] = [](InstructionPointer& ip) {
+        return ip.execute(U'Y');
+    };
+
+    commands[U'Z'] = [](InstructionPointer& ip) {
+        return ip.execute(U'Z');
     };
 }
 

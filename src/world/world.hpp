@@ -1,26 +1,33 @@
 #ifndef FUNGE98_WORLD_HPP
 #define FUNGE98_WORLD_HPP
 
-#include <cstdint>
 #include <iosfwd>
+#include <memory>
 #include <queue>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
-#include "pointer.hpp"
 #include "vector.hpp"
+
+class InstructionPointer;
 
 /// The Funge World is where all the instructions and data are stored. It can be 1D, 2D, or 3D depending on how the
 /// supplied file is set up or the passed arguments.
 class FungeWorld {
+    /// A private token that restricts creation to this class and allows this class to use smart pointers.
+    struct FungeToken {
+        explicit FungeToken() = default;
+    };
+
     public:
         /// Loads a Funge world from a supplied file, automatically inferring the dimensions.
         ///
         /// @param file  an input file stream to the desired file
         ///
         /// @return  a direct object representation of the loaded Funge world
-        static FungeWorld* fromFile(std::ifstream& file);
+        static std::shared_ptr<FungeWorld> fromFile(std::ifstream& file);
 
         /// Loads a Funge world from a supplied file, forcing a specific number of dimensions.
         ///
@@ -28,7 +35,14 @@ class FungeWorld {
         /// @param dim   the number of dimensions the Funge world should have
         ///
         /// @return  a direct object representation of the loaded Funge world with the specified number of dimensions
-        static FungeWorld* fromFile(std::ifstream& file, int dim);
+        static std::shared_ptr<FungeWorld> fromFile(std::ifstream& file, int dim);
+
+        /// Constructs a Funge world. This constructor requires a FungeToken, which can only be created from this class.
+        /// This allows construction in pointers while preventing construction outside of factory methods.
+        ///
+        /// @param chunks  the map of chunks in this world, in its initial state
+        /// @param size    the size of the world
+        FungeWorld(FungeToken, std::unordered_map<Vector, std::u32string> chunks, const Vector& size);
 
         /// Grabs the character at a specified location in the world. Returns a space \code ' '\endcode if there was no
         /// value specified in this location.
@@ -89,8 +103,8 @@ class FungeWorld {
 
         /// Executes the instruction under the specified pointer and advances the pointer.
         ///
-        /// @param ip  the pointer to receive the tick
-        void tick(InstructionPointer& ip);
+        /// @param ip_ptr  the pointer to receive the tick
+        void tick(std::unique_ptr<InstructionPointer> ip_ptr);
 
         /// Checks if an instruction pointer is within the bounds of the world, or if out of bounds, it checks for a
         /// travel direction towards the bounds of the world.
@@ -150,15 +164,13 @@ class FungeWorld {
         [[nodiscard]] std::pair<std::u32string&, int> getSublocation(const Vector& v);
 
         /// The queue of instruction pointers. Instruction pointers are polled, executed, and re-offered in a circle.
-        std::queue<InstructionPointer*> pointers;
+        std::queue<std::unique_ptr<InstructionPointer>> pointers;
 
         /// A vector of arguments that were passed in when running this script via the terminal.
         std::vector<std::u32string> args;
 
         /// A vector of environment variables on the system.
         std::vector<std::u32string> envars;
-
-        FungeWorld(std::unordered_map<Vector, std::u32string> chunks, const Vector& high);
 };
 
 /// Cleans up and exits the program with an exit code.

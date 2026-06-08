@@ -2,9 +2,11 @@
 #define FUNGE98_INSTRUCTIONS_HPP
 
 #include <functional>
+#include <memory>
 #include <unordered_map>
 
-#include "world.hpp"
+class FungeWorld;
+class InstructionPointer;
 
 /// A static utility class for hosting the available commands in Funge98.
 class InstructionSet {
@@ -12,7 +14,7 @@ class InstructionSet {
         /// Loads the command map and links the world.
         ///
         /// @param w  the world to link
-        static void load(FungeWorld& w);
+        static void load(std::shared_ptr<FungeWorld> w);
 
         /// Executes the command at the pointer's location.
         ///
@@ -35,26 +37,28 @@ class InstructionSet {
         InstructionSet(const InstructionSet&) = delete;
 
     private:
+        // TODO: since every ASCII character from 33-126 is used as a key, a vector can be used instead of a map
+
         /// A map of all the commands available. Commands take a reference of the instruction pointer that executed them
         /// as their sole parameter, and they return a boolean indicating their success status. An unsuccessful
         /// execution triggers a pointer reflection.
-        static std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> commands;
+        inline static std::unordered_map<char32_t, std::function<bool(InstructionPointer&)>> commands;
 
         /// A pointer to the world.
-        static FungeWorld* world;
+        inline static std::shared_ptr<FungeWorld> world;
 
         /// The column position of the text caret in the terminal. This facilitates deleting malformed input from
         /// requests for numbers (which in turn facilitates doing more creative stuff with terminal art and graphics).
-        static int pointerPosition;
+        inline static int pointerPosition = 0;
 
         /// A number related to ANSI flags. \code 0\endcode if nothing is happening, \code 1\endcode if an escape
         /// character has just been printed, and \code 2\endcode after the open bracket is printed but before the
         /// closing character is printed.
-        static int ansiFlag;
+        inline static int ansiFlag = 0;
 
         /// The parameter passed into the ANSI escape sequence, used to determine how far, if at all, the text caret
         /// moved as a result of the ANSI sequence.
-        static int ansiParameter;
+        inline static int ansiParameter = 0;
 };
 
 #endif

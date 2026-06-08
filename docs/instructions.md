@@ -331,7 +331,7 @@ Pops the top two values from the stack and pushes the quotient. If the stack has
 with a `0`. If the stack is empty, this instruction pushes a `0`.
 
 This instruction performs integer division, nearly identical to languages like C and Java. Any remainder is simply
-truncated. However, if the divisor (`b`) is `0`, this instruction quietly returns `0` instead of failing.
+truncated. A divisor (`b`) of `0` is not an error; the instruction simply returns `0`.
 
 **Pops:**
 - `a: int` — The dividend.
@@ -342,10 +342,10 @@ truncated. However, if the divisor (`b`) is `0`, this instruction quietly return
 
 ### Modulus (`%`)
 
-Pops the top two values from the stack and pushes the quotient. If the stack has only one value, it will be replaced
-with a `0`. If the stack is empty, this instruction pushes a `0`.
+Pops the top two values from the stack and pushes the remainder that results from a division. If the stack has only one 
+value, it will be replaced with a `0`. If the stack is empty, this instruction pushes a `0`.
 
-If the divisor (`b`) is `0`, this instruction quietly returns `0` instead of failing.
+A divisor (`b`) of `0` is not an error; the instruction simply returns `0`.
 
 **Pops:**
 - `a: int` — The dividend.
@@ -852,8 +852,6 @@ originally. If `n` is greater than the total number of cells (i.e., 106 in this 
 
 ### Load Fingerprint (`(`)
 
-    ***To be implemented.***
-
 Pops a number `n`, then pops the next `n` cells, creating a number by multiplying a temporary value by 256 and pushing
 the next number to it for each cell. The IP then attempts to load a fingerprint of the specified number. Values of `n`
 above 4 simply pop extra cells, as this interpreter is limited to 32 bits.
@@ -869,11 +867,10 @@ values are fit to be used for the corresponding `)` instruction, but they are of
 - `fingerprint: int` — The fingerprint ID, as one integer.
 - `c: int` — The number `1`.
 
-**Fails:** If the specified fingerprint is not supported by this interpreter. The values are still popped.
+**Fails:** If the specified fingerprint is not supported by this interpreter. The `n` values are still popped. A
+negative `n` is treated as `0` and pops nothing other than the `n` itself.
 
 ### Unload Fingerprint (`)`)
-
-    ***To be implemented.***
 
 Pops a number `n`, then pops the next `n` cells, creating a number by multiplying a temporary value by 256 and pushing
 the next number to it for each cell. The IP then attempts to unload the fingerprint represented by this number. Values 
@@ -883,9 +880,9 @@ of `n` above 4 simply pop extra cells, as this interpreter is limited to 32 bits
 - `fingerprint: int...` — A sequence of `n` numbers that combine to form a fingerprint ID.
 - `n: int` — The number of cells to use to construct the fingerprint ID.
 
-**Fails:** If the specified fingerprint is not supported by this interpreter. The values are still popped. If the 
-fingerprint is supported but was never loaded, calling this instruction is not an error; this instruction simply does 
-nothing after popping from the stack.
+**Fails:** If the specified fingerprint is not supported by this interpreter. The `n` values are still popped. A 
+negative `n` is treated as `0` and pops nothing other than the `n` itself. If the fingerprint is supported but was never 
+loaded, calling this instruction is not an error; this instruction simply does nothing after popping from the stack.
 
 ### Stop Thread (`@`)
 
@@ -896,4 +893,4 @@ Kills the current IP. If this IP is the last active IP, the program immediately 
 Immediately terminates the program with a specified exit code.
 
 **Pops:**
-`code: int` — The exit code.
+- `code: int` — The exit code.

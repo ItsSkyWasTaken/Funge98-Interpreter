@@ -1,4 +1,5 @@
 #include "stack.hpp"
+
 #include "vector.hpp"
 
 Stack::Stack() {
