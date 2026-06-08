@@ -9,11 +9,11 @@ is cloned whenever `t` is executed.
 Supported fingerprints are baked directly into this interpreter in native C++ code, allowing faster execution times and 
 better portability than Minifunge implementations. This interpreter will gradually gain more support for the major 
 fingerprints provided by RCS, RC/Funge, and Cats-Eye. Custom fingerprints can be emulated on this interpreter by using 
-the SUBR (subroutine) fingerprint when it gains support.
+the MACR (macros) or SUBR (subroutine) fingerprints when they gain support.
 
 Below is a current list of supported fingerprints. The functions that each fingerprint offers can be found in each of 
 their respective pages.
 
-| Fingerprint ID | String Name | Origin | Description                    |
-|:--------------:|:-----------:|:------:|:-------------------------------|
-|   0x5354524E   |    STRN     |  RCS   | Functions for string handling. |
+|    Fingerprint ID     | String Name | Origin | Description                    |
+|:---------------------:|:-----------:|:------:|:-------------------------------|
+| [0x5354524E](strn.md) |    STRN     |  RCS   | Functions for string handling. |
