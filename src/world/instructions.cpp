@@ -18,16 +18,22 @@
 #include "world.hpp"
 
 #if defined(_WIN32) || defined(_WIN64)
-    constexpr std::u32string NEWLINE = U"\r\n";
+constexpr std::u32string NEWLINE = U"\r\n";
+
 #elif defined(__APPLE__)
-    #include <TargetConditionals.h>
-    #if defined(TARGET_OS_MAC) && TARGET_OS_MAC
-        constexpr std::u32string NEWLINE = "\n";
-    #else
-        constexpr std::u32string NEWLINE = "\r";
-    #endif
+#include <TargetConditionals.h>
+
+#if defined(TARGET_OS_MAC) && TARGET_OS_MAC
+constexpr std::u32string NEWLINE = "\n";
+
 #else
-    constexpr std::u32string NEWLINE = "\n";
+constexpr std::u32string NEWLINE = "\r";
+
+#endif
+
+#else
+constexpr std::u32string NEWLINE = "\n";
+
 #endif
 
 void InstructionSet::load(std::shared_ptr<FungeWorld> w) {

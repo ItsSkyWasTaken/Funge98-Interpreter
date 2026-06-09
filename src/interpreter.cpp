@@ -10,30 +10,32 @@
 #include "strings.hpp"
 
 #ifdef _WIN32
-    #include <windows.h>
-    extern char** _environ;
-    #define environ _environ
-    UINT originalInCP, originalOutCP;
+#include <windows.h>
+extern char** _environ;
+#define environ _environ
+UINT originalInCP, originalOutCP;
 
-    /// Sets the console to use UTF-8 instead of ASCII (or whatever else it was set to).
-    void setupConsole() {
-        originalInCP = GetConsoleCP();
-        originalOutCP = GetConsoleOutputCP();
-        SetConsoleCP(CP_UTF8);
-        SetConsoleOutputCP(CP_UTF8);
-    }
+/// Sets the console to use UTF-8 instead of ASCII (or whatever else it was set to).
+void setupConsole() {
+    originalInCP = GetConsoleCP();
+    originalOutCP = GetConsoleOutputCP();
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+}
 
-    /// Restores the codepoint system the console was using before.
-    void restoreConsole() {
-        SetConsoleCP(originalInCP);
-        SetConsoleOutputCP(originalOutCP);
-    }
+/// Restores the codepoint system the console was using before.
+void restoreConsole() {
+    SetConsoleCP(originalInCP);
+    SetConsoleOutputCP(originalOutCP);
+}
 
 #elifdef __APPLE__
-    #include <crt_externs.h>
-    #define environ (*_NSGetEnviron())
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
+
 #else
-    extern char** environ;
+extern char** environ;
+
 #endif
 
 void quit(const int code) {
@@ -51,7 +53,7 @@ void quit(const int code) {
 int main(const int argc, char** argv) {
     std::ios_base::sync_with_stdio(false);
     if(argc == 1 || std::string(argv[1]) == "--help") {
-        std::cout << std::endl << "Hello! Thank you for checking out my lil' project. :)\n"
+        std::cout << "\nHello! Thank you for checking out my lil' project. :)\n"
                   << "This is a Funge98 interpreter. Funge98 is an esoteric programming language. If you are not already\n"
                   << "familiar with Funge98, you can learn about it on my Github page...\n"
                   << "\033[93mhttps://github.com/ItsSkyWasTaken/Funge98-Interpreter\033[0m\n\n"

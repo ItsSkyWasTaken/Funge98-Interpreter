@@ -3,6 +3,8 @@
 #include <sstream>
 #include <string>
 
+/// A collection of utility functions for retrieving strings from files and converting from UTF-8 to UTF-32 and vice
+/// versa.
 namespace Strings {
     /// Grabs a line from a file, taking into account all 3 possible line delimiters.
     ///
