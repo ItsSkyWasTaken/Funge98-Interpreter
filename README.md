@@ -14,9 +14,12 @@ from the source specifications (from either the base language or fingerprints).
 
 ## Interpreter Statistics
 
-This interpreter is still a WIP. Here are the instructions that are still to be implemented:
+This interpreter is still a WIP. These are some issues in the current version (v0.3.0) that will be resolved in the 
+future:
 
-- Missing instructions (WIP): `(`, and `)` (and by extension, all uppercase letters)
+- Replacing a character at the edge of the active region with a space, such that there is no non-space character on the
+  edge anymore, does not shrink the active region as reported by `y`.
+- Anything outside the 32–127 range is ignored instead of causing a reflect
 
 These are the details that are received as a result of the GetSysInfo (`y`) command:
 
@@ -43,7 +46,7 @@ funge98 example.b98
 ```
 
 By default, this interpreter starts in a "sandbox mode", and the input (`i`), output (`o`), and execute (`=`) commands
-are disabled for security. When fingerprint support gets added in the future, any fingerprint command that relates to 
+are disabled for security. Additionally, as fingerprint support gets added, any fingerprint command that relates to 
 executing system commands or reading, creating, modifying, or deleting files will also be disabled by default. To enable
 them for a program, you must use flags when running the Funge98 file:
 - To enable `i` and related fingerprint instructions (anything that can read files or folders), use `--read`, `-r`, or 
