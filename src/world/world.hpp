@@ -106,24 +106,29 @@ class FungeWorld {
         /// @param ip_ptr  the pointer to receive the tick
         void tick(std::unique_ptr<InstructionPointer> ip_ptr);
 
-        /// Checks if an instruction pointer is within the bounds of the world, or if out of bounds, it checks for a
-        /// travel direction towards the bounds of the world.
+        /// Gets the box of the active region of the world.
         ///
-        /// @param ip  the pointer to check
-        ///
-        /// @return  true if the pointer is either in the world or traveling towards it (false if the pointer is out of
-        ///          the world and traveling away from it)
-        [[nodiscard]] bool boundsCheck(const InstructionPointer& ip) const;
+        /// @return  the two vectors representing the low and high corners of the active region, respectively
+        std::pair<const Vector&, const Vector&> getBounds() const;
 
-        /// Checks if a temporary instruction pointer is within the bounds of the world, or if out of bounds, it checks
-        /// for a travel direction towards the bounds of the world.
+        /// Attempts to rebound an instruction pointer if it's out of bounds.
         ///
-        /// @param position  the location to check
-        /// @param delta     the delta to check with
+        /// @param ip  the pointer to rebound
         ///
-        /// @return  true if the temporary pointer is either in the world or traveling towards it (false if the pointer
-        ///          is out of the world and traveling away from it)
-        [[nodiscard]] bool boundsCheck(const Vector& position, const Vector& delta) const;
+        /// @return  two booleans, the first of which is true if it's able to rebound, and the second indicates if a
+        ///          rebound took place
+        std::pair<bool, bool> rebound(InstructionPointer& ip) const;
+
+        /// Attempts to rebound a loose point according to a delta if it's out of bounds.
+        ///
+        /// @param location      the location of the point to rebound
+        /// @param delta         the delta to rebound along
+        /// @param inverseDelta  the inverse of the delta; precalculated so the same numbers can be reused without
+        ///                      having to recalculate expensive division
+        ///
+        /// @return  two booleans, the first of which is true if the point is able to rebound, and the second indicates
+        ///          if a rebound took place
+        std::pair<bool, bool> rebound(Vector& location, const Vector& delta, const std::array<float, 3>& inverseDelta) const;
 
         /// The number of dimensions that this world supports.
         const int32_t dimensions;

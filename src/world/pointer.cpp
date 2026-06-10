@@ -13,7 +13,13 @@ InstructionPointer::InstructionPointer(const int32_t dimensions):
         InstructionPointer(Vector::origin(dimensions), Vector::east(dimensions), Vector::origin(dimensions), std::make_unique<Stack>()) {}
 
 InstructionPointer::InstructionPointer(const Vector& location, const Vector& delta, const Vector& offset, std::unique_ptr<Stack> stack):
-        location(location), delta(delta), storageOffset(offset), stack(std::move(stack)), mode(PointerState::NORMAL), id(nextId++) {}
+        location(location), delta(delta), storageOffset(offset), reciprocalDelta({}), stack(std::move(stack)), mode(PointerState::NORMAL), id(nextId++) {
+
+    // Pass 1e-20 instead of zero to prevent NaN issues later.
+    reciprocalDelta[0] = 1.0F / (delta.getX() == 0 ? 1e-20F : delta.getX());
+    reciprocalDelta[1] = 1.0F / (delta.getY() == 0 ? 1e-20F : delta.getY());
+    reciprocalDelta[2] = 1.0F / (delta.getZ() == 0 ? 1e-20F : delta.getZ());
+}
 
 std::unique_ptr<InstructionPointer> InstructionPointer::split() const {
     return std::make_unique<InstructionPointer>(location, -delta, storageOffset, std::make_unique<Stack>(*stack));
@@ -104,6 +110,10 @@ const Vector& InstructionPointer::getDelta() const {
     return delta;
 }
 
+const std::array<float, 3>& InstructionPointer::getReciprocalDelta() const {
+    return reciprocalDelta;
+}
+
 const Vector& InstructionPointer::getOffset() const {
     return storageOffset;
 }
@@ -118,10 +128,18 @@ void InstructionPointer::setLocation(int32_t x, int32_t y, int32_t z) {
 
 void InstructionPointer::setDelta(const Vector& v) {
     delta = v;
+
+    reciprocalDelta[0] = 1.0F / (delta.getX() == 0 ? 1e-20F : delta.getX());
+    reciprocalDelta[1] = 1.0F / (delta.getY() == 0 ? 1e-20F : delta.getY());
+    reciprocalDelta[2] = 1.0F / (delta.getZ() == 0 ? 1e-20F : delta.getZ());
 }
 
 void InstructionPointer::setDelta(int32_t x, int32_t y, int32_t z) {
     delta = {x, y, z};
+
+    reciprocalDelta[0] = 1.0F / (delta.getX() == 0 ? 1e-20F : delta.getX());
+    reciprocalDelta[1] = 1.0F / (delta.getY() == 0 ? 1e-20F : delta.getY());
+    reciprocalDelta[2] = 1.0F / (delta.getZ() == 0 ? 1e-20F : delta.getZ());
 }
 
 void InstructionPointer::setPointerState(const PointerState ipMode) {

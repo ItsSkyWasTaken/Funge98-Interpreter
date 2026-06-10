@@ -676,7 +676,8 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
         }
 
         // Find next instruction.
-        Vector pos(ip.getLocation()), delta(ip.getDelta());
+        Vector pos(ip.getLocation());
+        const Vector delta(ip.getDelta());
         pos += delta;
         auto c = static_cast<uint32_t>(world->get(pos));
 
@@ -684,12 +685,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
         while(c > 126 || c <= 32) {
             pos += delta;
 
-            if(!world->boundsCheck(pos, delta)) {
-                delta *= -1;
-                do {
-                    pos += delta;
-                } while(world->boundsCheck(pos, delta));
-                delta *= -1;
+            if(world->rebound(pos, delta, ip.getReciprocalDelta()).second) {
                 pos += delta;
             }
 
@@ -702,12 +698,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
             while(c != U';') {
                 pos += delta;
 
-                if(!world->boundsCheck(pos, delta)) {
-                    delta *= -1;
-                    do {
-                        pos += delta;
-                    } while(world->boundsCheck(pos, delta));
-                    delta *= -1;
+                if(world->rebound(pos, delta, ip.getReciprocalDelta()).second) {
                     pos += delta;
                 }
 

@@ -64,6 +64,11 @@ class InstructionPointer {
         /// @return  the current delta of this instruction pointer
         [[nodiscard]] const Vector& getDelta() const;
 
+        /// Gets a read only reference to the cache of reciprocal delta coordinates.
+        ///
+        /// @return  the array representing the reciprocal delta
+        [[nodiscard]] const std::array<float, 3>& getReciprocalDelta() const;
+
         /// Gets a read-only reference to this instruction pointer's storage offset vector.
         ///
         /// @return  the current storage offset of this instruction pointer
@@ -150,6 +155,9 @@ class InstructionPointer {
 
         /// An array of active fingerprints.
         std::array<std::vector<std::weak_ptr<Fingerprint>>, 26> activeFingerprints;
+
+        /// A cache of reciprocals of each delta component.
+        std::array<float, 3> reciprocalDelta;
 
         /// The current position of this instruction pointer.
         Vector location;

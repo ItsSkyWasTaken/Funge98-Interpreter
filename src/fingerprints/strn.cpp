@@ -66,7 +66,7 @@ bool StringFP::g(InstructionPointer& ip) {
     while(c != U'\0') {
         result += c;
         v += east;
-        if(!world->boundsCheck(v, east)) {
+        if(v.getX() > world->getBounds().second.getX()) {
             return false;
         }
 

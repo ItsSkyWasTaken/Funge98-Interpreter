@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -229,7 +230,7 @@ void FungeWorld::put(const Vector& location, const char32_t value) {
     chunk[offset] = value;
 
     low = {std::min(low.getX(), location.getX()), std::min(low.getY(), location.getY()), std::min(low.getZ(), location.getZ())};
-    high = {std::max(high.getX(), location.getX() + 1), std::max(high.getY(), location.getY() + 1), std::max(high.getY(), location.getY() + 1)};
+    high = {std::max(high.getX(), location.getX() + 1), std::max(high.getY(), location.getY() + 1), std::max(high.getZ(), location.getZ() + 1)};
 }
 
 std::pair<std::u32string&, int> FungeWorld::getSublocation(const Vector& v) {
@@ -292,60 +293,83 @@ void FungeWorld::passEnvar(const std::u32string& envar) {
     envars.push_back(envar);
 }
 
-bool FungeWorld::boundsCheck(const InstructionPointer& ip) const {
-    if(ip.getLocation().getX() < low.getX() && ip.getDelta().getX() <= 0) {
-        return false;
-    }
-
-    if(ip.getLocation().getY() < low.getY() && ip.getDelta().getY() <= 0) {
-        return false;
-    }
-
-    if(ip.getLocation().getZ() < low.getZ() && ip.getDelta().getZ() <= 0) {
-        return false;
-    }
-
-    if(ip.getLocation().getX() > high.getX() && ip.getDelta().getX() >= 0) {
-        return false;
-    }
-
-    if(ip.getLocation().getY() > high.getY() && ip.getDelta().getY() >= 0) {
-        return false;
-    }
-
-    if(ip.getLocation().getZ() > high.getZ() && ip.getDelta().getZ() >= 0) {
-        return false;
-    }
-
-    return true;
+std::pair<const Vector&, const Vector&> FungeWorld::getBounds() const {
+    return {low, high};
 }
 
-bool FungeWorld::boundsCheck(const Vector& position, const Vector& delta) const {
-    if(position.getX() < low.getX() && delta.getX() <= 0) {
-        return false;
+std::pair<bool, bool> FungeWorld::rebound(InstructionPointer& ip) const {
+    const std::array<float, 3>& deltaInverse = ip.getReciprocalDelta();
+
+    const float tx1 = (low.getX() - ip.getLocation().getX()) * deltaInverse[0];
+    const float tx2 = (high.getX() - ip.getLocation().getX()) * deltaInverse[0];
+    float tMin = std::min(tx1, tx2);
+    float tMax = std::max(tx1, tx2);
+
+    if(dimensions >= 2) {
+        const float ty1 = (low.getY() - ip.getLocation().getY()) * deltaInverse[1];
+        const float ty2 = (high.getY() - ip.getLocation().getY()) * deltaInverse[1];
+        tMin = std::max(tMin, std::min(ty1, ty2));
+        tMax = std::min(tMax, std::max(ty1, ty2));
     }
 
-    if(position.getY() < low.getY() && delta.getY() <= 0) {
-        return false;
+    if(dimensions >= 3) {
+        const float tz1 = (low.getZ() - ip.getLocation().getZ()) * deltaInverse[2];
+        const float tz2 = (high.getZ() - ip.getLocation().getZ()) * deltaInverse[2];
+        tMin = std::max(tMin, std::min(tz1, tz2));
+        tMax = std::min(tMax, std::max(tz1, tz2));
     }
 
-    if(position.getZ() < low.getZ() && delta.getZ() <= 0) {
-        return false;
+    if(tMax < tMin) {
+        return {false, false};
     }
 
-    if(position.getX() > high.getX() && delta.getX() >= 0) {
-        return false;
+    if(tMax < 0.0F) {
+        const int32_t x = static_cast<int>(std::round(ip.getLocation().getX() + tMin * ip.getDelta().getX()));
+        const int32_t y = dimensions >= 2 ? static_cast<int>(std::round(ip.getLocation().getY() + tMin * ip.getDelta().getY())) : 0;
+        const int32_t z = dimensions >= 3 ? static_cast<int>(std::round(ip.getLocation().getZ() + tMin * ip.getDelta().getZ())) : 0;
+        ip.setLocation(x, y, z);
+        ip.advance(-1);
+
+        return {true, true};
     }
 
-    if(position.getY() > high.getY() && delta.getY() >= 0) {
-        return false;
+    return {true, false};
+}
+
+std::pair<bool, bool> FungeWorld::rebound(Vector& location, const Vector& delta, const std::array<float, 3>& inverseDelta) const {
+    const float tx1 = (low.getX() - location.getX()) * inverseDelta[0];
+    const float tx2 = (high.getX() - location.getX()) * inverseDelta[0];
+    float tMin = std::min(tx1, tx2);
+    float tMax = std::max(tx1, tx2);
+
+    if(dimensions >= 2) {
+        const float ty1 = (low.getY() - location.getY()) * inverseDelta[1];
+        const float ty2 = (high.getY() - location.getY()) * inverseDelta[1];
+        tMin = std::max(tMin, std::min(ty1, ty2));
+        tMax = std::min(tMax, std::max(ty1, ty2));
     }
 
-    if(position.getZ() > high.getZ() && delta.getZ() >= 0) {
-        return false;
+    if(dimensions >= 3) {
+        const float tz1 = (low.getZ() - location.getZ()) * inverseDelta[2];
+        const float tz2 = (high.getZ() - location.getZ()) * inverseDelta[2];
+        tMin = std::max(tMin, std::min(tz1, tz2));
+        tMax = std::min(tMax, std::max(tz1, tz2));
     }
 
-    return true;
+    if(tMax < tMin) {
+        return {false, false};
+    }
+
+    if(tMax < 0.0F) {
+        const int32_t x = static_cast<int>(std::round(location.getX() + tMin * delta.getX()));
+        const int32_t y = dimensions >= 2 ? static_cast<int>(std::round(location.getY() + tMin * delta.getY())) : 0;
+        const int32_t z = dimensions >= 3 ? static_cast<int>(std::round(location.getZ() + tMin * delta.getZ())) : 0;
+        location = {x, y, z};
+
+        return {true, true};
+    }
+
+    return {true, false};
 }
 
 void FungeWorld::run() {
@@ -373,25 +397,12 @@ void FungeWorld::tick(std::unique_ptr<InstructionPointer> ip_ptr) {
                 ip.advance(1);
                 ch = static_cast<uint32_t>(get(ip.getLocation()));
 
-                if(!boundsCheck(ip)) {
-                    // TODO: Make this O(1)
-                    ip.setDelta(ip.getDelta() * -1);
-                    do {
-                        ip.advance(1);
-                    } while(boundsCheck(ip));
-                    ip.setDelta(ip.getDelta() * -1);
-                }
+                rebound(ip);
             }
 
             ip.setDelta(ip.getDelta() * -1);
             ip.advance(1);
-            if(!boundsCheck(ip)) {
-                ip.setDelta(ip.getDelta() * -1);
-                do {
-                    ip.advance(1);
-                } while(boundsCheck(ip));
-                ip.setDelta(ip.getDelta() * -1);
-            }
+            rebound(ip);
             ip.setDelta(ip.getDelta() * -1);
         } else {
             ip.getStack().push(c);
@@ -403,14 +414,7 @@ void FungeWorld::tick(std::unique_ptr<InstructionPointer> ip_ptr) {
         while(c > 126 || c <= 32) {
             ip.advance(1);
             c = static_cast<uint32_t>(get(ip.getLocation()));
-
-            if(!boundsCheck(ip)) {
-                ip.setDelta(ip.getDelta() * -1);
-                do {
-                    ip.advance(1);
-                } while(boundsCheck(ip));
-                ip.setDelta(ip.getDelta() * -1);
-            }
+            rebound(ip);
         }
 
         if(c == U';') {
@@ -419,14 +423,7 @@ void FungeWorld::tick(std::unique_ptr<InstructionPointer> ip_ptr) {
             while(c != U';') {
                 ip.advance(1);
                 c = static_cast<uint32_t>(get(ip.getLocation()));
-
-                if(!boundsCheck(ip)) {
-                    ip.setDelta(ip.getDelta() * -1);
-                    do {
-                        ip.advance(1);
-                    } while(boundsCheck(ip));
-                    ip.setDelta(ip.getDelta() * -1);
-                }
+                rebound(ip);
             }
 
             ip.advance(1);
@@ -445,12 +442,7 @@ void FungeWorld::tick(std::unique_ptr<InstructionPointer> ip_ptr) {
     if(ip.getPointerState() != PointerState::EXITING) {
         ip.advance(1);
 
-        if(!boundsCheck(ip)) {
-            ip.setDelta(ip.getDelta() * -1);
-            do {
-                ip.advance(1);
-            } while(boundsCheck(ip));
-            ip.setDelta(ip.getDelta() * -1);
+        if(rebound(ip).second) {
             ip.advance(1);
         }
 

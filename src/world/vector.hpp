@@ -5,9 +5,12 @@
 #include <cstdint>
 #include <functional>
 
-// Forward declarations so the class and hash struct can interact with each other.
+// Forward declaration so the class and hash struct can interact with each other.
 class Vector;
-template<> struct std::hash<Vector>;
+
+template<> struct std::hash<Vector> {
+    std::size_t operator()(const Vector& v) const noexcept;
+};
 
 /// A @code Vector@endcode represents a set of coordinates. These coordinates may represent a location or a direction
 /// and may be absolute or relative, depending on the context in which they are used.
@@ -160,10 +163,6 @@ class Vector {
 
         /// The z-coordinate of the vector.
         int32_t z;
-};
-
-template<> struct std::hash<Vector> {
-    std::size_t operator()(const Vector& v) const noexcept;
 };
 
 #endif
