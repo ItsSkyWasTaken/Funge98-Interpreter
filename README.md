@@ -19,7 +19,7 @@ future:
 
 - Replacing a character at the edge of the active region with a space, such that there is no non-space character on the
   edge anymore, does not shrink the active region as reported by `y`.
-- Anything outside the 32–127 range is ignored instead of causing a reflect
+- Anything outside the 32–127 range is ignored instead of causing a reflection
 
 These are the details that are received as a result of the GetSysInfo (`y`) command:
 

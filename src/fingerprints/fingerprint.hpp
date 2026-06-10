@@ -42,7 +42,7 @@ class Fingerprint {
         /// pointer reflection
         bool execute(char32_t instruction, InstructionPointer& ip);
 
-        /// Returns a set of characters that this fingerprint overrides, to allow for easy loading.
+        /// Returns a set of characters that this fingerprint overrides to allow for easy loading.
         ///
         /// @return  the set of characters overloaded by this fingerprint
         const std::vector<char32_t>& getImplementedInstructions() const {

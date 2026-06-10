@@ -54,7 +54,7 @@ multiple IP's, each IP receives a tick in an order determined by a queue (predic
 Funge98 is a stack-based language. In Befunge93, each stack would simply store numbers. However, in Funge98, stacks are 
 instead implemented as stacks of stacks, which facilitate scoping. If a Funge98 program does not use the instructions 
 `{`, `}`, or `u`, then the stack is effectively treated the same as the stack in Befunge93. Each IP has its own stack 
-(important for Concurrent Funge), and each stack starts with a single sub-stack. Each sub-stack stores cells that are 32
+(important for Concurrent Funge), and each stack starts with a single substack. Each substack stores cells that are 32
 bits each.
 
 Most instructions operate on the stack, either by popping arguments or pushing return values (or both, or sometimes 
