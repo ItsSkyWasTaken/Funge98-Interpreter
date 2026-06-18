@@ -240,17 +240,9 @@ void FungeWorld::put(const Vector& location, const char32_t value) {
         switch(dimensions) {
             case 1: {
                 if(location.getX() == low.getX()) {
-                    while(get(low) == U' ') {
-                        low += {1};
 
-                        if(low.getX() > high.getX()) {
-                            quit(0);
-                        }
-                    }
                 } else if(location.getX() == high.getX()) {
-                    while(get(high) == U' ') {
-                        high -= {1};
-                    }
+
                 }
 
                 break;
