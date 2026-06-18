@@ -1064,7 +1064,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
         stack.push(localTime->tm_year * 65536 + (localTime->tm_mon + 1) * 256 + localTime->tm_mday);
 
         // Push high corner of region with non-space cells, relative to low the corner.
-        stack.push(world->high - world->low - Vector(1, 1, 1));
+        stack.push(world->high - world->low);
 
         // Push low corner of region with non-space cells, relative to the origin.
         stack.push(world->low);

@@ -132,11 +132,15 @@ int32_t Vector::getZ() const {
     return z;
 }
 
-std::size_t std::hash<Vector>::operator()(const Vector& v) const noexcept {
-    const std::size_t h1 = std::hash<int>{}(v.x);
-    const std::size_t h2 = std::hash<int>{}(v.y);
-    const std::size_t h3 = std::hash<int>{}(v.z);
-    const std::size_t h4 = std::hash<int>{}(v.dimensions);
+size_t std::hash<Vector>::operator()(const Vector& v) const noexcept {
+    size_t seed = 0;
+    auto combine = [&seed](const size_t val) {
+        seed ^= val + 0x9E3779B9 + (seed << 6) + (seed >> 2);
+    };
 
-    return h1 ^ h2 << 1 ^ h3 << 2 ^ h4 << 3;
+    combine(std::hash<int>{}(v.x));
+    combine(std::hash<int>{}(v.y));
+    combine(std::hash<int>{}(v.z));
+    combine(std::hash<int>{}(v.dimensions));
+    return seed;
 }

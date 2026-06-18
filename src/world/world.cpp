@@ -53,7 +53,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file) {
             p++;
         }
 
-        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, maxY, p));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX - 1, maxY - 1, p - 1));
     }
 
     std::u32string& plane = planes[0];
@@ -93,7 +93,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file) {
             l++;
         }
 
-        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, maxY, p));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX - 1, maxY - 1, p - 1));
     }
 
     // Befunge
@@ -113,7 +113,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file) {
             l++;
         }
 
-        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, l + 1));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX - 1, l));
     }
 
     // Unefunge
@@ -124,7 +124,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file) {
         chunks.insert_or_assign(chunk, chunkString.append(std::max(0, static_cast<int32_t>(chunkString.length() - 4096)), U' '));
     }
 
-    return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(line.length()));
+    return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(line.length() - 1));
 }
 
 std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file, const int dim) {
@@ -144,7 +144,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file, const int 
             chunks.insert_or_assign(chunk, chunkString.append(std::max(0, static_cast<int32_t>(chunkString.length() - 4096)), U' '));
         }
 
-        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(program.length()));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(program.length() - 1));
     }
 
     // Befunge
@@ -167,7 +167,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file, const int 
             l++;
         }
 
-        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, l));
+        return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX - 1, l - 1));
     }
 
     // Trefunge
@@ -208,7 +208,7 @@ std::shared_ptr<FungeWorld> FungeWorld::fromFile(std::ifstream& file, const int 
         p++;
     }
 
-    return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX, maxY, p));
+    return std::make_shared<FungeWorld>(FungeToken{}, std::move(chunks), Vector(maxX - 1, maxY - 1, p - 1));
 }
 
 char32_t FungeWorld::get(const Vector& location) {
@@ -217,23 +217,264 @@ char32_t FungeWorld::get(const Vector& location) {
     }
 
     const auto [chunk, offset] = getSublocation(location);
-    return chunk[offset];
+    if(!chunk) {
+        return U' ';
+    }
+
+    return (*chunk)[offset];
 }
 
-// TODO: Shrink world size if the edges are spaced away
 void FungeWorld::put(const Vector& location, const char32_t value) {
     if(location.dimensions > dimensions) {
         return;
     }
 
-    const auto [chunk, offset] = getSublocation(location);
-    chunk[offset] = value;
+    const auto [chunk, offset] = getSublocation(location, value != U' ');
+    if(!chunk) {
+        return;
+    }
 
-    low = {std::min(low.getX(), location.getX()), std::min(low.getY(), location.getY()), std::min(low.getZ(), location.getZ())};
-    high = {std::max(high.getX(), location.getX() + 1), std::max(high.getY(), location.getY() + 1), std::max(high.getZ(), location.getZ() + 1)};
+    (*chunk)[offset] = value;
+
+    if(value == U' ') {
+        switch(dimensions) {
+            case 1: {
+                if(location.getX() == low.getX()) {
+                    while(get(low) == U' ') {
+                        low += {1};
+
+                        if(low.getX() > high.getX()) {
+                            quit(0);
+                        }
+                    }
+                } else if(location.getX() == high.getX()) {
+                    while(get(high) == U' ') {
+                        high -= {1};
+                    }
+                }
+
+                break;
+            }
+            case 2: {
+                if(location.getX() == low.getX()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t y = low.getY(); y <= high.getY(); y++) {
+                            if(get({low.getX(), y}) != U' ') {
+                                empty = false;
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            low += {1, 0};
+
+                            if(low.getX() > high.getX()) {
+                                quit(0);
+                            }
+                        }
+                    }
+                } else if(location.getX() == high.getX()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t y = low.getY(); y <= high.getY(); y++) {
+                            if(get({high.getX(), y}) != U' ') {
+                                empty = false;
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            high -= {1, 0};
+                        }
+                    }
+                }
+
+                if(location.getY() == low.getY()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t x = low.getX(); x <= high.getX(); x++) {
+                            if(get({x, low.getY()}) != U' ') {
+                                empty = false;
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            low += {0, 1};
+
+                            if(low.getY() > high.getY()) {
+                                quit(0);
+                            }
+                        }
+                    }
+                } else if(location.getY() == high.getY()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t x = low.getX(); x <= high.getX(); x++) {
+                            if(get({x, high.getY()}) != U' ') {
+                                empty = false;
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            high -= {0, 1};
+                        }
+                    }
+                }
+
+                break;
+            }
+            default: {
+                assert(dimensions == 3);
+
+                if(location.getX() == low.getX()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t z = low.getZ(); z <= high.getZ(); z++) {
+                            for(int32_t y = low.getY(); y <= high.getY(); y++) {
+                                if(get({low.getX(), y, z}) != U' ') {
+                                    empty = false;
+                                    break;
+                                }
+                            }
+
+                            if(!empty) {
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            low += {1, 0, 0};
+
+                            if(low.getX() > high.getX()) {
+                                quit(0);
+                            }
+                        }
+                    }
+                } else if(location.getX() == high.getX()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t z = low.getZ(); z <= high.getZ(); z++) {
+                            for(int32_t y = low.getY(); y <= high.getY(); y++) {
+                                if(get({high.getX(), y, z}) != U' ') {
+                                    empty = false;
+                                    break;
+                                }
+                            }
+
+                            if(!empty) {
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            high -= {1, 0, 0};
+                        }
+                    }
+                }
+
+                if(location.getY() == low.getY()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t z = low.getZ(); z <= high.getZ(); z++) {
+                            for(int32_t x = low.getX(); x <= high.getX(); x++) {
+                                if(get({x, low.getY(), z}) != U' ') {
+                                    empty = false;
+                                    break;
+                                }
+                            }
+
+                            if(!empty) {
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            low += {0, 1, 0};
+
+                            if(low.getY() > high.getY()) {
+                                quit(0);
+                            }
+                        }
+                    }
+                } else if(location.getX() == high.getX()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t z = low.getZ(); z <= high.getZ(); z++) {
+                            for(int32_t x = low.getX(); x <= high.getX(); x++) {
+                                if(get({x, high.getY(), z}) != U' ') {
+                                    empty = false;
+                                    break;
+                                }
+                            }
+
+                            if(!empty) {
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            high -= {0, 1, 0};
+                        }
+                    }
+                }
+
+                if(location.getZ() == low.getZ()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t y = low.getY(); y <= high.getY(); y++) {
+                            for(int32_t x = low.getX(); x <= high.getX(); x++) {
+                                if(get({x, y, low.getZ()}) != U' ') {
+                                    empty = false;
+                                    break;
+                                }
+                            }
+
+                            if(!empty) {
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            low += {0, 0, 1};
+
+                            if(low.getZ() > high.getZ()) {
+                                quit(0);
+                            }
+                        }
+                    }
+                } else if(location.getX() == high.getX()) {
+                    bool empty = true;
+                    while(empty) {
+                        for(int32_t y = low.getY(); y <= high.getY(); y++) {
+                            for(int32_t x = low.getX(); x <= high.getX(); x++) {
+                                if(get({x, y, high.getZ()}) != U' ') {
+                                    empty = false;
+                                    break;
+                                }
+                            }
+
+                            if(!empty) {
+                                break;
+                            }
+                        }
+
+                        if(empty) {
+                            high -= {0, 0, 1};
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        low = {std::min(low.getX(), location.getX()), std::min(low.getY(), location.getY()), std::min(low.getZ(), location.getZ())};
+        high = {std::max(high.getX(), location.getX()), std::max(high.getY(), location.getY()), std::max(high.getZ(), location.getZ())};
+    }
 }
 
-std::pair<std::u32string&, int> FungeWorld::getSublocation(const Vector& v) {
+std::pair<std::u32string*, int> FungeWorld::getSublocation(const Vector& v, const bool generate) {
     const int32_t x = v.getX(), y = v.getY(), z = v.getZ();
     const std::pair<Vector, uint32_t> p = [&] {
         switch(dimensions) {
@@ -257,8 +498,23 @@ std::pair<std::u32string&, int> FungeWorld::getSublocation(const Vector& v) {
         }
     }();
 
-    chunks.try_emplace(p.first, 4096, U' ');
-    return { chunks[p.first], p.second };
+    assert(p.second < 4096);
+    auto it = chunks.find(p.first);
+
+    if(!generate) {
+        if(it != chunks.end()) {
+            return {&it->second, p.second};
+        }
+
+        return {nullptr, p.second};
+    }
+
+    if(it == chunks.end()) {
+        auto [inserted_it, _] = chunks.try_emplace(p.first, 4096, U' ');
+        it = inserted_it;
+    }
+
+    return {&it->second, p.second};
 }
 
 void FungeWorld::setReadEnabled(const bool enabled) {
