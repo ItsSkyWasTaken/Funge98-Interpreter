@@ -28,6 +28,19 @@ affected during the initial load, it's common to store persistent variables in t
 In Unefunge and Befunge files, form feeds are simply treated as regular characters. Additionally, in Unefunge, newline 
 sequences are not transferred into the program.
 
+***Note:*** Mycology will label this behavior with form feed characters in Befunge files as **[BAD]** and instead 
+expects form feed characters to be stripped out like newline sequences. However, this is **not** how it's defined in the
+original specification. A form feed character is not an EOL marker, and as such, should be treated as regular text 
+according to the specification:
+
+> The source file begins at the *origin* of Funge-Space. Subsequent columns of characters increment the *x* coordinate, 
+> and subsequent lines increment the *y* coordinate (if one is present) and reset the *x* coordinate to zero. Subsequent
+> lines in Unefunge are simply appended to the first, and the end of the source file indicates the end of the (single) 
+> line. End-of-line markers are never copied into Funge-Space.
+> 
+> In Trefunge-98, the Form Feed (12) character increments the *z* coordinate and resets the *x* and *y* coordinates to 
+> zero.
+
 Funge worlds are effectively infinite; they are only bound by the 32-bit integer limits. As such, the theoretical limit 
 of a Unefunge world is enough to fill the RAM space of a typical laptop, and the theoretical limits of Befunge and 
 Trefunge worlds exceed the maximum theoretical memory on a 64-bit processor. Assuming a hypothetical device with 

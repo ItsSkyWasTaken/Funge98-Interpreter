@@ -556,7 +556,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
                 cursor += {1, 0, 0};
             }
 
-            const Vector size = cursor - start;
+            const Vector size = cursor - start - Vector(1, 0, 0);
             world->low = {std::min(world->low.getX(), start.getX()), world->low.getY(), world->low.getZ()};
             world->high = {std::max(world->high.getX(), cursor.getX()), world->high.getY(), world->high.getZ()};
 
@@ -579,7 +579,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
                 }
             }
 
-            const auto size = cursor - start;
+            const auto size = cursor - start - Vector(1);
             world->low = {std::min(world->low.getX(), start.getX())};
             world->high = {std::max(world->high.getX(), cursor.getX())};
 
@@ -607,7 +607,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
                 cursor = {start.getX(), cursor.getY() + 1};
             }
 
-            const auto upperBound = Vector(maxX, cursor.getY()), size = upperBound - start;
+            const auto upperBound = Vector(maxX - 1, cursor.getY() - 1), size = upperBound - start;
             world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY())};
             world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY())};
 
@@ -651,7 +651,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
             cursor = {start.getX(), start.getY(), cursor.getZ() + 1};
         }
 
-        const auto upperBound = Vector(maxX, maxY, cursor.getZ()), size = upperBound - start;
+        const auto upperBound = Vector(maxX - 1, maxY - 1, cursor.getZ() - 1), size = upperBound - start;
         world->low = {std::min(world->low.getX(), start.getX()), std::min(world->low.getY(), start.getY()), std::min(world->low.getZ(), start.getZ())};
         world->high = {std::max(world->high.getX(), upperBound.getX()), std::max(world->high.getY(), upperBound.getY()), std::max(world->high.getZ(), upperBound.getZ())};
 
@@ -826,8 +826,8 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
                 break;
             case 2:
                 contents.reserve(size.getX() * size.getY());
-                for(int y = 0; y < size.getY(); y++) {
-                    for(int x = 0; x < size.getX(); x++) {
+                for(int y = 0; y <= size.getY(); y++) {
+                    for(int x = 0; x <= size.getX(); x++) {
                         char32_t c = world->get(origin + Vector(x, y));
 
                         if(flags & 1) {
@@ -877,9 +877,9 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
                 assert(world->dimensions == 3);
                 contents.reserve(size.getX() * size.getY() * size.getZ());
 
-                for(int z = 0; z < size.getZ(); z++) {
-                    for(int y = 0; y < size.getY(); y++) {
-                        for(int x = 0; x < size.getX(); x++) {
+                for(int z = 0; z <= size.getZ(); z++) {
+                    for(int y = 0; y <= size.getY(); y++) {
+                        for(int x = 0; x <= size.getX(); x++) {
                             char32_t c = world->get(origin + Vector(x, y, z));
 
                             if(flags & 1) {
@@ -1093,8 +1093,8 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
         // Push Operating Paradigm - equivalent to system() if enabled.
         stack.push(world->canExecute() ? 1 : 0);
 
-        // Push version number - v0.3.0 = 300.
-        stack.push(300);
+        // Push version number - v0.3.1 = 301.
+        stack.push(301);
 
         // Push handprint - ISWT (0x49535754).
         stack.push(0x49535754);

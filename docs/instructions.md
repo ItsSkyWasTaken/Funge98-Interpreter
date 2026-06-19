@@ -667,6 +667,10 @@ at the table from the [Funge-98 Final Specification](https://github.com/catseye/
 > closed. **Two vectors are then pushed onto the stack, Va and Vb, suitable arguments to a corresponding `o` 
 > instruction.** If the file open failed, the instruction acts like `r`.
 
+***Note:*** If you are using the Mycology test suite, it will incorrectly label a few tests related to this instruction 
+as **[BAD]**. Mycology expects `size` to be exclusive, which is not consistent with Catseye's specification, which says 
+that `size` is inclusive (the same as `y`).
+
 *Va* and *Vb* correspond to `location` and `size`, respectively.
 
 **Pops:**
@@ -706,6 +710,10 @@ at the table from the [Funge-98 Final Specification](https://github.com/catseye/
 > not, the instruction acts like `r`.
 
 *Va* and *Vb* correspond to `location` and `size`, respectively.
+
+***Note:*** If you are using the Mycology test suite, it will incorrectly label a few tests related to this instruction 
+as **[BAD]**. Mycology expects `size` to be exclusive, which is not consistent with Catseye's specification, which says
+that `size` is inclusive (the same as `y`).
 
 **Pops:**
 - `size: vector` — The lower southeast corner (positive axes) of the region of the file's content, relative to

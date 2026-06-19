@@ -14,12 +14,8 @@ from the source specifications (from either the base language or fingerprints).
 
 ## Interpreter Statistics
 
-This interpreter is still a WIP. These are some issues in the current version (v0.3.0) that will be resolved in the 
-future:
-
-- Replacing a character at the edge of the active region with a space, such that there is no non-space character on the
-  edge anymore, does not shrink the active region as reported by `y`.
-- Anything outside the 32–127 range is ignored instead of causing a reflection
+As of v0.3.1, the base language should be complete but may contain hidden bugs that slipped under the radar. If you 
+discover a bug, please report it. Fingerprint support will continue to be added in upcoming versions.
 
 These are the details that are received as a result of the GetSysInfo (`y`) command:
 
@@ -30,7 +26,7 @@ These are the details that are received as a result of the GetSysInfo (`y`) comm
 - I/O: **buffered**
 - Cell size: **32-bit**
 - Handprint: **1230198612** (`0x49535754`)
-- Version: v0.3.0 (`300`)
+- Version: v0.3.1 (`301`)
 - Operating paradigm: Equivalent to C-language `system()`
 
 ## Running a Funge98 File
