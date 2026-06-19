@@ -3,10 +3,12 @@
 #include <cassert>
 #include <utility>
 
+#include "bool.hpp"
 #include "strn.hpp"
 
 void Fingerprint::load(std::shared_ptr<FungeWorld> w) {
     world = std::move(w);
+    fingerprints.emplace(0x424F4F4C, &BooleanFP::instance);
     fingerprints.emplace(0x5354524E, &StringFP::instance);
 }
 
@@ -23,7 +25,6 @@ std::shared_ptr<Fingerprint> Fingerprint::load(const int32_t id) {
 
 bool Fingerprint::execute(const char32_t instruction, InstructionPointer& ip) {
     assert(instruction >= U'A' && instruction <= U'Z');
-
     return instructions[instruction - U'A'](this, ip);
 }
 

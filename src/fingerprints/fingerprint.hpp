@@ -20,6 +20,7 @@ class Fingerprint {
     public:
         /// A flag indicating that this fingerprint can have multiple instances created and destroyed throughout an
         /// app's lifetime. Transient fingerprints are destroyed when its associated pointer is destroyed. Non-transient
+        /// fingerprints are created once and reused throughout the entire application.
         const bool transient;
 
         /// Loads the fingerprint map.
