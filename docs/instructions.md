@@ -403,7 +403,7 @@ visited will be according to the new delta.
 
 Zero-values and non-zero components other than `1` or `-1` are allowed. For example, a vector (2, 0, 0) can be passed in
 to cause the IP to move east but skip every other cell, and a vector (1, −2, 0) can be passed in to cause the IP to move
-as a chess knight in the north-northeast direction. A zero-vector can also be passed in, which causes the vector to
+as a chess knight in the north-northeast direction. A zero-vector can also be passed in, which causes the pointer to
 completely stop in place. If the stack is empty, this causes an infinite loop.
 
 An IP with a zero delta is said to be "stopped", and an IP with a delta that is not one of the cardinal directions is
@@ -667,11 +667,11 @@ at the table from the [Funge-98 Final Specification](https://github.com/catseye/
 > closed. **Two vectors are then pushed onto the stack, Va and Vb, suitable arguments to a corresponding `o` 
 > instruction.** If the file open failed, the instruction acts like `r`.
 
+*Va* and *Vb* correspond to `location` and `size`, respectively.
+
 ***Note:*** If you are using the Mycology test suite, it will incorrectly label a few tests related to this instruction 
 as **[BAD]**. Mycology expects `size` to be exclusive, which is not consistent with Catseye's specification, which says 
 that `size` is inclusive (the same as `y`).
-
-*Va* and *Vb* correspond to `location` and `size`, respectively.
 
 **Pops:**
 - `location: vector` — The upper northwest corner (negative axes) of the region to start placing the file's contents, 
