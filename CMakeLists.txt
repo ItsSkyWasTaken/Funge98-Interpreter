@@ -31,4 +31,6 @@ add_executable(funge98 src/interpreter.cpp
         src/fingerprints/strn.cpp
         src/fingerprints/bool.cpp
         src/fingerprints/bool.hpp
+        src/fingerprints/imth.cpp
+        src/fingerprints/imth.hpp
 )

@@ -14,7 +14,8 @@ the MACR (macros) or SUBR (subroutine) fingerprints when they gain support.
 Below is a current list of supported fingerprints. The functions that each fingerprint offers can be found in each of 
 their respective pages.
 
-|    Fingerprint ID     | String Name | Origin | Description                    |
-|:---------------------:|:-----------:|:------:|:-------------------------------|
-| [0x424F4F4C](bool.md) |    BOOL     |  RCS   | Bitwise operations.            |
-| [0x5354524E](strn.md) |    STRN     |  RCS   | Functions for string handling. |
+|    Fingerprint ID     | String Name | Origin | Description                       |
+|:---------------------:|:-----------:|:------:|:----------------------------------|
+| [0x424F4F4C](bool.md) |    BOOL     |  RCS   | Bitwise operations.               |
+| [0x494D5448](imth.md) |    IMTH     |  RCS   | Extra functions for integer math. |
+| [0x5354524E](strn.md) |    STRN     |  RCS   | Functions for string handling.    |

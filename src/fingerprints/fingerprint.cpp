@@ -4,11 +4,13 @@
 #include <utility>
 
 #include "bool.hpp"
+#include "imth.hpp"
 #include "strn.hpp"
 
 void Fingerprint::load(std::shared_ptr<FungeWorld> w) {
     world = std::move(w);
     fingerprints.emplace(0x424F4F4C, &BooleanFP::instance);
+    fingerprints.emplace(0x494d5448, &IMathFP::instance);
     fingerprints.emplace(0x5354524E, &StringFP::instance);
 }
 
