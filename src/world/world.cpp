@@ -628,16 +628,20 @@ std::pair<bool, bool> FungeWorld::rebound(Vector& location, const Vector& delta,
     return {true, false};
 }
 
-void FungeWorld::run() {
+void FungeWorld::quit(int code) {
+    exitCode = code;
+}
+
+int FungeWorld::run() {
     pointers.push(std::make_unique<InstructionPointer>(dimensions));
 
-    while(!pointers.empty()) {
+    while(!pointers.empty() && !exitCode) {
         auto ip = std::move(pointers.front());
         pointers.pop();
         tick(std::move(ip));
     }
 
-    quit(0);
+    return exitCode.value_or(0);
 }
 
 void FungeWorld::tick(std::unique_ptr<InstructionPointer> ip_ptr) {

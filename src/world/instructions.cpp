@@ -958,7 +958,7 @@ void InstructionSet::load(std::shared_ptr<FungeWorld> w) {
 
     // Quit program.
     commands[U'q'] = [](const InstructionPointer& ip) {
-        quit(ip.getStack().pop());
+        world->quit(ip.getStack().pop());
         return true;
     };
 

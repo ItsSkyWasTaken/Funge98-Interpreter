@@ -38,18 +38,6 @@ extern char** environ;
 
 #endif
 
-void quit(const int code) {
-    std::cout << "\n\n\033[0m================================================================\n"
-              << " Program has finished running.\n Exit code: " << code << "\n"
-              << "================================================================" << std::endl;
-
-    #ifdef _WIN32
-        restoreConsole();
-    #endif
-
-    std::exit(code);
-}
-
 int main(const int argc, char** argv) {
     std::ios_base::sync_with_stdio(false);
     if(argc == 1 || std::string(argv[1]) == "--help") {
@@ -120,6 +108,10 @@ int main(const int argc, char** argv) {
 
     file.close();
 
+    #ifdef _WIN32
+    setupConsole();
+    #endif
+
     world->setReadEnabled(read);
     world->setWriteEnabled(write);
     world->setExecuteEnabled(execute);
@@ -134,12 +126,18 @@ int main(const int argc, char** argv) {
     InstructionSet::load(world);
     Fingerprint::load(world);
 
-    #ifdef _WIN32
-        setupConsole();
-    #endif
-
     std::cout << " Starting!\n"
               << "================================================================\n" << std::endl;
 
-    world->run();
+    const int code = world->run();
+
+    std::cout << "\n\n\033[0m================================================================\n"
+              << " Program has finished running.\n Exit code: " << code << "\n"
+              << "================================================================" << std::endl;
+
+    #ifdef _WIN32
+    restoreConsole();
+    #endif
+
+    return code;
 }
