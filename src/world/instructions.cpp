@@ -24,15 +24,15 @@ constexpr std::u32string NEWLINE = U"\r\n";
 #include <TargetConditionals.h>
 
 #if defined(TARGET_OS_MAC) && TARGET_OS_MAC
-constexpr std::u32string NEWLINE = "\n";
+constexpr std::u32string NEWLINE = U"\n";
 
 #else
-constexpr std::u32string NEWLINE = "\r";
+constexpr std::u32string NEWLINE = U"\r";
 
 #endif
 
 #else
-constexpr std::u32string NEWLINE = "\n";
+constexpr std::u32string NEWLINE = U"\n";
 
 #endif
 
